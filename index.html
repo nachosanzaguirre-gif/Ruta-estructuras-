@@ -122,6 +122,9 @@
   ol.itin .leg .mv button{width:28px;height:24px;padding:0;border:1px solid var(--line-strong);background:var(--paper);border-radius:5px;color:var(--slate);font-size:13px;line-height:1;cursor:pointer}
   ol.itin .leg .mv button:hover{background:#f0f1f3;color:var(--ink)}
   .method.manual{color:#2b6cb0;border-color:#b9d3ec;background:#eef4fb}
+  ol.itin .leg .mv .rmv{color:var(--err);border-color:#e6bdba}
+  .rowbtns{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+  .rowbtns button{font-size:13.5px}
   ol.itin .onum{width:26px;height:26px;border-radius:50%;background:var(--road);color:#fff;font:600 12px/1 var(--mono);display:flex;align-items:center;justify-content:center}
   .mk.start{background:var(--road)}
   .startnote{font-size:11.5px;color:var(--slate);margin-top:7px;line-height:1.4}
@@ -138,7 +141,8 @@
   .ac .aci .cod{font-family:var(--mono);font-size:12.5px;color:var(--accent);font-weight:600;flex:none;width:64px}
   .ac .aci .nm{font-size:13px;line-height:1.3;flex:1;min-width:0}
   .ac .aci .di{font-size:11px;color:var(--slate);font-family:var(--mono)}
-  .ac .aci .tick{flex:none;font-size:14px;color:var(--ok)}
+  .ac .aci .tick{flex:none;font-size:15px;font-weight:700;color:var(--accent)}
+  .ac .aci .tick.on{color:var(--ok)}
   .ac .empty{padding:10px 11px;color:var(--slate);font-size:13px}
 
   .maps{margin-top:16px;border-top:1px solid var(--line);padding-top:14px}
@@ -239,6 +243,7 @@
         <div class="selbar">
           <button id="selAll" class="ghost">Seleccionar todas</button>
           <button id="selNone" class="ghost">Ninguna</button>
+          <button id="resetAll" class="ghost">Empezar de cero</button>
           <span class="count" id="selCount"><b>0</b> seleccionadas</span>
         </div>
         <div class="list" id="list"></div>
@@ -302,6 +307,7 @@
         <div id="resContent" class="hidden">
           <div class="summary" id="summary"></div>
           <div class="attrib" id="attrib"></div>
+          <div class="rowbtns"><button id="recalc">Recalcular</button><button id="bigMap">Ver mapa grande</button></div>
           <ol class="itin" id="itin"></ol>
 
           <div class="maps">
@@ -330,6 +336,7 @@
         <li>O usa el enlace <b>«Maps ↗»</b> de cada parada para ir <b>de una en una</b> (ideal con muchas paradas: inspeccionas, vuelves y pinchas la siguiente). «Copiar lista de paradas» te lleva la ruta ordenada al móvil.</li>
         <li><b>Rutas guardadas</b>: guarda la selección con un nombre y recupérala cuando quieras; al cargarla, la ruta se calcula <b>desde tu ubicación</b> para iniciarla estés donde estés. Se guarda en ese navegador/equipo.</li>
         <li><b>Reordenar a mano</b>: en el itinerario, usa ↑/↓ en cada parada para cambiar el orden; se marca «Orden manual» y se recalculan tiempos, mapa y enlace.</li>
+        <li><b>Editar la ruta</b>: <b>✕</b> quita una parada; para añadir, márcala en la lista o el buscador y pulsa <b>Recalcular</b>. <b>Empezar de cero</b> vacía la selección y el resultado. <b>Ver mapa grande</b> abre el mapa de la ruta a pantalla completa en otra pestaña.</li>
       </ul>
       <h3>Motor «Tiempo por carretera»</h3>
       <ul>
@@ -375,7 +382,7 @@
     </div>
   </details>
 
-  <footer>Herramienta local · v4.6 · reordenar a mano · rutas guardadas · PWA</footer>
+  <footer>Herramienta local · v4.7 · editar ruta · buscador · mapa grande · PWA</footer>
 </div>
 
 <div class="mobilebar" id="mobilebar">
@@ -385,7 +392,7 @@
 
 <script>
 /* =========================================================================
-   Ruta de inspección de estructuras — aplicación autónoma (v4.6, reordenar a mano + rutas guardadas + inicio GPS/mapa + PWA)
+   Ruta de inspección de estructuras — aplicación autónoma (v4.7, editar ruta + buscador desplegable + mapa grande + PWA)
    Solver y datos 100% locales. Tiempos por carretera vía OSRM público
    (con respaldo a línea recta). Mapa Leaflet/OSM con respaldo SVG.
    ========================================================================= */
@@ -1137,7 +1144,8 @@ function renderResults(order, nodes, closed, info, liveOrigin, note){
   const chip=multi?('<span class="method '+(info.manual?"manual":(info.exact?"exact":"approx"))+'">'+(info.manual?"Orden manual":(info.exact?"Orden óptimo exacto":"Orden aproximado"))+'</span>'):'';
 
   const summary=$("#summary");
-  if(road){
+  if(!multi){ summary.innerHTML='<span class="metric">Destino único</span><span class="engtag line">navegar</span>'; $("#attrib").textContent=""; }
+  else if(road){
     let tSec=0,tM=0;
     for(let i=1;i<order.length;i++){ tSec+=info.dur[order[i-1]][order[i]]; if(info.dist)tM+=info.dist[order[i-1]][order[i]]; }
     summary.innerHTML='<span class="metric">Tiempo (por carretera): <b>'+fmtDur(tSec)+'</b></span>'
@@ -1168,7 +1176,7 @@ function renderResults(order, nodes, closed, info, liveOrigin, note){
       li.innerHTML='<span class="onum">▶</span><span class="who"><span class="cod">'+escapeHtml(olabel)+'</span></span><span class="leg">'+legHtml+'</span>';
     }else{
       let moveBtns='';
-      if(!isRet){ si++; if(showMove) moveBtns='<br><span class="mv"><button class="mvup" data-si="'+si+'" title="Subir">↑</button><button class="mvdn" data-si="'+si+'" title="Bajar">↓</button></span>'; }
+      if(!isRet){ si++; let bts='<button class="rmv" data-si="'+si+'" title="Quitar de la ruta">✕</button>'; if(showMove)bts='<button class="mvup" data-si="'+si+'" title="Subir">↑</button><button class="mvdn" data-si="'+si+'" title="Bajar">↓</button>'+bts; moveBtns='<br><span class="mv">'+bts+'</span>'; }
       li.innerHTML='<span class="num"></span>'
         +'<span class="who"><span class="cod">'+escapeHtml(nd.code)+'</span> <span class="nm">'+escapeHtml(nd.name)+'</span><br><span class="di">'+escapeHtml(nd.distrito)+'</span></span>'
         +'<span class="leg">'+legHtml+'<br><a class="go2" target="_blank" rel="noopener" href="'+mapsStopUrl(nd)+'">Maps ↗</a>'+moveBtns+'</span>';
@@ -1191,23 +1199,76 @@ function renderResults(order, nodes, closed, info, liveOrigin, note){
   }
 }
 
+function currentSeq(){
+  const lr=lastRoute; if(!lr)return [];
+  const seq=[]; if(lr.originNode)seq.push(lr.originNode);
+  for(const st of lr.navStops)seq.push(st);
+  if(lr.closed)seq.push(lr.originNode||lr.navStops[0]);
+  return seq;
+}
+function rerenderManual(){
+  const lr=lastRoute; if(!lr)return;
+  const order=currentSeq().map(nd=>lr.nodes.indexOf(nd));
+  renderResults(order, lr.nodes, lr.closed, Object.assign({},lr.info,{manual:true}), lr.liveOrigin, lr.note);
+}
 function moveStop(i,dir){
   if(!lastRoute)return; const s=lastRoute.navStops, j=i+dir;
   if(i<0||i>=s.length||j<0||j>=s.length)return;
   const t=s[i]; s[i]=s[j]; s[j]=t; rerenderManual();
 }
-function rerenderManual(){
-  const lr=lastRoute; if(!lr)return;
-  const seq=[]; if(lr.originNode)seq.push(lr.originNode);
-  for(const st of lr.navStops)seq.push(st);
-  if(lr.closed)seq.push(lr.originNode||lr.navStops[0]);
-  const order=seq.map(nd=>lr.nodes.indexOf(nd));
-  renderResults(order, lr.nodes, lr.closed, Object.assign({},lr.info,{manual:true}), lr.liveOrigin, lr.note);
+function removeStop(i){
+  if(!lastRoute)return; const s=lastRoute.navStops;
+  if(i<0||i>=s.length)return;
+  const rm=s.splice(i,1)[0];
+  if(rm&&rm.code)SELECTED.delete(rm.code);
+  renderList(); renderStartOptions(); updateSelCount();
+  if(!s.length){ clearResults(); showMsg($("#selMsg"),"warn","Ruta vacía. Selecciona estructuras y pulsa Calcular."); toast("Quitada "+(rm&&rm.code?rm.code:"")); return; }
+  rerenderManual(); toast("Quitada "+(rm&&rm.code?rm.code:""));
 }
 $("#itin").addEventListener("click",(e)=>{
-  const b=e.target.closest(".mvup,.mvdn"); if(!b)return;
-  moveStop(parseInt(b.getAttribute("data-si"),10), b.classList.contains("mvup")?-1:1);
+  const b=e.target.closest(".mvup,.mvdn,.rmv"); if(!b)return;
+  const si=parseInt(b.getAttribute("data-si"),10);
+  if(b.classList.contains("rmv")) removeStop(si);
+  else moveStop(si, b.classList.contains("mvup")?-1:1);
 });
+
+/* Mapa a pantalla completa en pestaña nueva */
+function buildMapPage(seq){
+  const data=JSON.stringify(seq.map(function(p){return {lat:p.lat,lon:p.lon,code:p.code||"",name:p.name||"",kind:p.kind||""};})).replace(/<\/script/gi,"<\\/script");
+  return `<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Mapa de la ruta</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>html,body{height:100%;margin:0}#map{height:100%}.mk{display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;background:#B4610A;color:#fff;font:600 13px/1 monospace;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.4)}.mk.s{background:#1F6F5C}</style></head>
+<body><div id="map"></div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"><\/script>
+<script>
+var P=${data};
+var map=L.map("map");
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"© OpenStreetMap"}).addTo(map);
+var ll=P.map(function(p){return [p.lat,p.lon];});
+if(ll.length>1)L.polyline(ll,{color:"#B4610A",weight:4,opacity:.85}).addTo(map);
+var n=0,seen={};
+P.forEach(function(p){
+  var k=p.lat+","+p.lon, isS=!!p.kind;
+  if(!isS){ if(seen[k])return; seen[k]=1; }
+  var num=isS?"▶":(++n);
+  var html='<div class="mk'+(isS?' s':'')+'">'+num+'</div>';
+  L.marker([p.lat,p.lon],{icon:L.divIcon({className:"",html:html,iconSize:[28,28],iconAnchor:[14,14]})}).addTo(map).bindPopup(isS?(p.name||"Inicio"):("<b>"+num+". "+p.code+"</b><br>"+p.name));
+});
+if(ll.length===1)map.setView(ll[0],15);else map.fitBounds(ll,{padding:[40,40]});
+<\/script></body></html>`;
+}
+function openBigMap(){
+  if(!lastRoute){toast("Calcula primero una ruta");return;}
+  try{
+    const blob=new Blob([buildMapPage(currentSeq())],{type:"text/html"});
+    const url=URL.createObjectURL(blob);
+    const w=window.open(url,"_blank");
+    if(!w)toast("Permite las ventanas emergentes para ver el mapa grande");
+    setTimeout(function(){URL.revokeObjectURL(url);},60000);
+  }catch(e){ toast("No se pudo abrir el mapa: "+e.message); }
+}
+$("#bigMap").addEventListener("click",openBigMap);
+$("#recalc").addEventListener("click",()=>$("#calc").click());
 
 function mapsStopUrl(p){return "https://www.google.com/maps/dir/?api=1&travelmode=driving&destination="+encodeURIComponent(p.lat+","+p.lon);}
 function computeMapsUrl(orderedNodes, liveOrigin){
@@ -1350,7 +1411,7 @@ function drawSchematic(ordered,closed){
 function acData(q){
   q=norm(q); if(!q) return [];
   const out=[];
-  for(const it of INV){ if(norm(it.code+" "+it.name+" "+it.distrito).includes(q)){ out.push(it); if(out.length>=8)break; } }
+  for(const it of INV){ if(norm(it.code+" "+it.name+" "+it.distrito).includes(q)){ out.push(it); if(out.length>=12)break; } }
   return out;
 }
 function renderAC(){
@@ -1358,32 +1419,44 @@ function renderAC(){
   acMatches=acData(q); acActive=-1;
   if(!q.trim()){ box.className="ac"; box.innerHTML=""; return; }
   if(!acMatches.length){ box.className="ac show"; box.innerHTML='<div class="empty">Sin coincidencias</div>'; return; }
-  box.innerHTML=acMatches.map((it,i)=>'<div class="aci" data-i="'+i+'"><span class="cod">'+escapeHtml(it.code)+'</span><span class="nm">'+escapeHtml(it.name)+'<br><span class="di">'+escapeHtml(it.distrito)+'</span></span>'+(SELECTED.has(it.code)?'<span class="tick">✓</span>':'')+'</div>').join("");
+  box.innerHTML=acMatches.map((it,i)=>'<div class="aci" data-i="'+i+'"><span class="cod">'+escapeHtml(it.code)+'</span><span class="nm">'+escapeHtml(it.name)+'<br><span class="di">'+escapeHtml(it.distrito)+'</span></span><span class="tick'+(SELECTED.has(it.code)?' on':'')+'">'+(SELECTED.has(it.code)?'✓':'+')+'</span></div>').join("");
   box.className="ac show";
 }
 function highlightAC(){ const box=$("#ac"); [...box.querySelectorAll(".aci")].forEach((el,i)=>el.classList.toggle("active",i===acActive)); const act=box.querySelector(".aci.active"); if(act)act.scrollIntoView({block:"nearest"}); }
 function pickAC(i){
   const it=acMatches[i]; if(!it)return;
-  if(SELECTED.has(it.code))SELECTED.delete(it.code); else SELECTED.add(it.code);
-  renderList(); renderStartOptions(); updateSelCount(); renderAC(); $("#filter").focus();
+  const add=!SELECTED.has(it.code);
+  if(add)SELECTED.add(it.code); else SELECTED.delete(it.code);
+  renderList(); renderStartOptions(); updateSelCount(); renderAC();
+  toast((add?"Añadida ":"Quitada ")+it.code);
+  $("#filter").focus();
 }
 function hideAC(){ const box=$("#ac"); box.className="ac"; box.innerHTML=""; }
 $("#filter").addEventListener("input",()=>{ renderList(); renderAC(); });
+$("#filter").addEventListener("focus",renderAC);
+$("#filter").addEventListener("blur",()=>{ setTimeout(hideAC,180); });
 $("#filter").addEventListener("keydown",(e)=>{
   const box=$("#ac"); if(!box.classList.contains("show"))return;
   if(e.key==="ArrowDown"){ e.preventDefault(); acActive=Math.min(acActive+1,acMatches.length-1); highlightAC(); }
   else if(e.key==="ArrowUp"){ e.preventDefault(); acActive=Math.max(acActive-1,0); highlightAC(); }
-  else if(e.key==="Enter"){ e.preventDefault(); pickAC(acActive>=0?acActive:0); }
+  else if(e.key==="Enter"){ e.preventDefault(); if(acMatches.length)pickAC(acActive>=0?acActive:0); }
   else if(e.key==="Escape"){ hideAC(); }
 });
 $("#ac").addEventListener("mousedown",(e)=>{ const el=e.target.closest(".aci"); if(!el)return; e.preventDefault(); pickAC(parseInt(el.getAttribute("data-i"),10)); });
-document.addEventListener("click",(e)=>{ if(!e.target.closest(".acwrap")) hideAC(); });
 $("#selAll").addEventListener("click",()=>{
   const q=norm($("#filter").value);
   INV.forEach(it=>{if(!q||norm(it.code+" "+it.name+" "+it.distrito).includes(q))SELECTED.add(it.code);});
   renderList();renderStartOptions();updateSelCount();
 });
 $("#selNone").addEventListener("click",()=>{SELECTED.clear();renderList();renderStartOptions();updateSelCount();});
+$("#resetAll").addEventListener("click",()=>{
+  SELECTED.clear(); pickedPoint=null;
+  if(pickMarker&&mapObj){ try{mapObj.removeLayer(pickMarker);}catch(e){} pickMarker=null; }
+  $("#filter").value=""; hideAC();
+  renderList(); renderStartOptions(); updateSelCount();
+  $("#startSel").value=(window.isSecureContext?"__gps__":""); updateStartNote();
+  clearResults(); hideMsg($("#selMsg")); toast("Empezar de cero");
+});
 
 $("#saveRoute").addEventListener("click",()=>{
   const codes=[...SELECTED];
