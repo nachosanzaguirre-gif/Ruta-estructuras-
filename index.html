@@ -1,0 +1,1459 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ruta de inspección de estructuras</title>
+<meta name="theme-color" content="#B4610A">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+  :root{
+    --bg:#EBEDF0; --paper:#FFFFFF; --ink:#17191C; --slate:#5B6570;
+    --line:#D5D8DC; --line-strong:#BFC4CA;
+    --accent:#B4610A; --accent-ink:#FFFFFF; --accent-050:#F6EDE1;
+    --sel:#E6EEF3; --road:#1F6F5C;
+    --ok:#1E7A46; --warn:#9A6212; --err:#B02A24;
+    --mono:"Consolas","SFMono-Regular","Menlo","Roboto Mono",monospace;
+    --ui:"Segoe UI",system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif;
+    --r:10px; --r-sm:7px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{background:var(--bg);color:var(--ink);font-family:var(--ui);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+  a{color:var(--accent)}
+  h1,h2,h3{margin:0;font-weight:650;letter-spacing:-0.01em}
+  .wrap{max-width:1180px;margin:0 auto;padding:18px 18px 60px}
+
+  header.app{display:flex;flex-wrap:wrap;gap:14px 20px;align-items:flex-end;justify-content:space-between;
+    padding:16px 18px;background:var(--paper);border:1px solid var(--line);border-radius:var(--r);margin-bottom:16px}
+  header.app .title{display:flex;flex-direction:column;gap:3px}
+  header.app h1{font-size:20px}
+  header.app .sub{color:var(--slate);font-size:13px}
+  .src{font-family:var(--mono);font-size:12px;color:var(--slate);margin-top:2px}
+  .src b{color:var(--ink)}
+  .toolbar{display:flex;flex-wrap:wrap;gap:8px}
+
+  button,.btn{font-family:var(--ui);font-size:13.5px;border:1px solid var(--line-strong);background:var(--paper);
+    color:var(--ink);padding:8px 13px;border-radius:var(--r-sm);cursor:pointer;line-height:1;white-space:nowrap}
+  button:hover,.btn:hover{border-color:#9aa0a7;background:#fbfbfc}
+  button:focus-visible,.btn:focus-visible,input:focus-visible,select:focus-visible,label:focus-within{outline:2px solid var(--accent);outline-offset:2px}
+  button.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+  button.primary:hover{background:#9c5408}
+  button:disabled{opacity:.55;cursor:progress}
+  button.ghost{background:transparent;border-color:transparent;color:var(--slate);padding:6px 8px}
+  button.ghost:hover{background:#e2e5e9;color:var(--ink)}
+
+  .grid{display:grid;grid-template-columns:minmax(0,420px) minmax(0,1fr);gap:16px;align-items:start}
+  @media(max-width:900px){.grid{grid-template-columns:1fr}}
+  .panel{background:var(--paper);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+  .panel .hd{padding:12px 15px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .panel .hd h2{font-size:14px;text-transform:uppercase;letter-spacing:.04em;color:var(--slate)}
+  .panel .bd{padding:15px}
+  .count{font-family:var(--mono);font-size:12px;color:var(--slate)}
+  .count b{color:var(--accent)}
+
+  .filter{width:100%;padding:9px 11px;border:1px solid var(--line-strong);border-radius:var(--r-sm);font-family:var(--ui);font-size:14px}
+  .selbar{display:flex;gap:6px;align-items:center;margin:11px 0 6px}
+  .selbar .count{margin-left:auto}
+
+  .list{max-height:40vh;overflow:auto;border:1px solid var(--line);border-radius:var(--r-sm)}
+  .group>.gh{position:sticky;top:0;background:#f2f3f5;border-bottom:1px solid var(--line);padding:6px 11px;
+    font-size:11.5px;letter-spacing:.03em;text-transform:uppercase;color:var(--slate);font-weight:600;z-index:1}
+  .row{display:grid;grid-template-columns:20px 66px 1fr;gap:9px;align-items:start;padding:8px 11px;border-bottom:1px solid #eef0f2;cursor:pointer}
+  .row:last-child{border-bottom:0}
+  .row:hover{background:#f7f8f9}
+  .row.on{background:var(--sel)}
+  .row input{margin-top:2px;width:15px;height:15px;accent-color:var(--accent);cursor:pointer}
+  .row .cod{font-family:var(--mono);font-size:12.5px;color:var(--accent);font-weight:600}
+  .row .nm{font-size:13px;line-height:1.35}
+  .row .meta{font-size:11px;color:var(--slate);font-family:var(--mono)}
+
+  fieldset.opts{border:1px solid var(--line);border-radius:var(--r-sm);padding:11px 13px;margin:14px 0 0}
+  fieldset.opts legend{font-size:11.5px;letter-spacing:.03em;text-transform:uppercase;color:var(--slate);font-weight:600;padding:0 6px}
+  .optrow{display:flex;flex-wrap:wrap;gap:14px;align-items:center}
+  .optrow label{display:inline-flex;gap:6px;align-items:center;font-size:13.5px;cursor:pointer}
+  .optrow input[type=radio]{accent-color:var(--accent)}
+  .hint{font-size:11.5px;color:var(--slate);margin-top:7px;line-height:1.4}
+  .startsel{display:flex;align-items:center;gap:8px;margin-top:11px;font-size:13.5px;color:var(--slate)}
+  .startsel select{flex:1;padding:7px 9px;border:1px solid var(--line-strong);border-radius:var(--r-sm);font-family:var(--ui);font-size:13.5px;background:var(--paper)}
+  .go{margin-top:15px;display:flex;gap:9px;align-items:center}
+  .go button.primary{flex:1;padding:11px}
+  .calcstatus{font-size:12px;color:var(--road);font-family:var(--mono);margin-top:8px;min-height:16px}
+
+  #mapwrap{position:relative;height:360px;border-bottom:1px solid var(--line);background:#e9ecef}
+  #map{position:absolute;inset:0}
+  #schematic{position:absolute;inset:0;display:none}
+  .maptag{position:absolute;left:10px;bottom:8px;z-index:600;background:rgba(255,255,255,.85);border:1px solid var(--line);
+    border-radius:6px;padding:3px 8px;font-size:11px;color:var(--slate);font-family:var(--mono);pointer-events:none;max-width:70%}
+  .mk{display:flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;
+    background:var(--accent);color:#fff;font:600 13px/1 var(--mono);border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.35)}
+  .mk.end{background:#17191C}
+  .placeholder{display:flex;align-items:center;justify-content:center;height:100%;color:var(--slate);font-size:14px;text-align:center;padding:24px}
+
+  .resbd{padding:15px}
+  .summary{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:baseline;margin-bottom:4px}
+  .metric{font-family:var(--mono);font-size:13px;color:var(--slate)}
+  .metric b{font-size:20px;color:var(--ink);font-weight:650}
+  .method{display:inline-block;font-size:11.5px;padding:2px 8px;border-radius:20px;border:1px solid var(--line-strong);color:var(--slate);font-family:var(--mono)}
+  .method.exact{color:var(--ok);border-color:#bfe0cc;background:#f0f8f3}
+  .method.approx{color:var(--warn);border-color:#e6d5b0;background:#faf4e8}
+  .engtag{display:inline-block;font-size:11.5px;padding:2px 8px;border-radius:20px;font-family:var(--mono)}
+  .engtag.road{color:var(--road);border:1px solid #b6d8cf;background:#eef7f4}
+  .engtag.line{color:var(--slate);border:1px solid var(--line-strong);background:#f3f4f6}
+  .attrib{font-size:11px;color:var(--slate);font-family:var(--mono);margin-top:8px}
+
+  ol.itin{list-style:none;margin:14px 0 0;padding:0;counter-reset:s}
+  ol.itin li{display:grid;grid-template-columns:28px 1fr auto;gap:11px;align-items:center;padding:9px 0;border-bottom:1px solid #eef0f2}
+  ol.itin li:last-child{border-bottom:0}
+  ol.itin .num{counter-increment:s;width:26px;height:26px;border-radius:50%;background:var(--accent-050);border:1px solid #e2cba9;
+    color:var(--accent);font:600 12.5px/1 var(--mono);display:flex;align-items:center;justify-content:center}
+  ol.itin li.ret .num{background:#eceef0;border-color:var(--line-strong);color:var(--slate)}
+  ol.itin .num::before{content:counter(s)}
+  ol.itin li.ret .num::before{content:"↩"}
+  ol.itin .who .cod{font-family:var(--mono);font-size:12.5px;color:var(--accent);font-weight:600}
+  ol.itin .who .nm{font-size:13px}
+  ol.itin .who .di{font-size:11px;color:var(--slate);font-family:var(--mono)}
+  ol.itin .leg{font-family:var(--mono);font-size:12px;color:var(--slate);text-align:right;white-space:nowrap;line-height:1.35}
+  ol.itin .leg .d{color:#8a9098}
+  ol.itin .leg .go2{display:inline-block;margin-top:4px;font-size:11px;color:var(--accent);text-decoration:none;border:1px solid #e2cba9;border-radius:5px;padding:1px 7px;background:var(--accent-050)}
+  ol.itin .leg .go2:hover{background:#efe0cc}
+  ol.itin .leg .mv{display:inline-flex;gap:4px;margin-top:5px}
+  ol.itin .leg .mv button{width:28px;height:24px;padding:0;border:1px solid var(--line-strong);background:var(--paper);border-radius:5px;color:var(--slate);font-size:13px;line-height:1;cursor:pointer}
+  ol.itin .leg .mv button:hover{background:#f0f1f3;color:var(--ink)}
+  .method.manual{color:#2b6cb0;border-color:#b9d3ec;background:#eef4fb}
+  ol.itin .onum{width:26px;height:26px;border-radius:50%;background:var(--road);color:#fff;font:600 12px/1 var(--mono);display:flex;align-items:center;justify-content:center}
+  .mk.start{background:var(--road)}
+  .startnote{font-size:11.5px;color:var(--slate);margin-top:7px;line-height:1.4}
+  .savedrow{display:flex;gap:6px;align-items:center}
+  .savedrow select{flex:1;min-width:0;padding:7px 9px;border:1px solid var(--line-strong);border-radius:var(--r-sm);font-family:var(--ui);font-size:13px;background:var(--paper)}
+  #saveRoute{margin-top:7px}
+  .acwrap{position:relative}
+  .ac{position:absolute;left:0;right:0;top:calc(100% + 3px);z-index:120;background:var(--paper);border:1px solid var(--line-strong);
+    border-radius:var(--r-sm);box-shadow:0 8px 20px -8px rgba(0,0,0,.25);max-height:280px;overflow:auto;display:none}
+  .ac.show{display:block}
+  .ac .aci{display:flex;gap:9px;align-items:center;padding:10px 11px;cursor:pointer;border-bottom:1px solid #eef0f2}
+  .ac .aci:last-child{border-bottom:0}
+  .ac .aci:hover,.ac .aci.active{background:var(--sel)}
+  .ac .aci .cod{font-family:var(--mono);font-size:12.5px;color:var(--accent);font-weight:600;flex:none;width:64px}
+  .ac .aci .nm{font-size:13px;line-height:1.3;flex:1;min-width:0}
+  .ac .aci .di{font-size:11px;color:var(--slate);font-family:var(--mono)}
+  .ac .aci .tick{flex:none;font-size:14px;color:var(--ok)}
+  .ac .empty{padding:10px 11px;color:var(--slate);font-size:13px}
+
+  .maps{margin-top:16px;border-top:1px solid var(--line);padding-top:14px}
+  .maps .acts{display:flex;flex-wrap:wrap;gap:9px;margin-bottom:9px}
+  .urlbox{width:100%;font-family:var(--mono);font-size:11.5px;color:var(--slate);background:#f6f7f8;border:1px solid var(--line);
+    border-radius:var(--r-sm);padding:9px 11px;word-break:break-all;max-height:96px;overflow:auto}
+
+  .msg{border-radius:var(--r-sm);padding:9px 12px;font-size:13px;margin-top:10px;display:none}
+  .msg.show{display:block}
+  .msg.warn{background:#faf4e8;border:1px solid #e6d5b0;color:#7a4e0e}
+  .msg.err{background:#fbedec;border:1px solid #e6bdba;color:#8f231e}
+  .msg ul{margin:6px 0 0;padding-left:18px}
+
+  details.docs{margin-top:16px;background:var(--paper);border:1px solid var(--line);border-radius:var(--r)}
+  details.docs>summary{cursor:pointer;padding:13px 16px;font-weight:600;font-size:14px;list-style:none}
+  details.docs>summary::-webkit-details-marker{display:none}
+  details.docs>summary::before{content:"▸ ";color:var(--accent)}
+  details.docs[open]>summary::before{content:"▾ "}
+  .docbd{padding:0 18px 16px;font-size:13.5px;color:#2b2f34}
+  .docbd h3{font-size:13px;text-transform:uppercase;letter-spacing:.03em;color:var(--slate);margin:14px 0 6px}
+  .docbd ul{margin:0;padding-left:20px}
+  .docbd li{margin:3px 0}
+  .docbd code{font-family:var(--mono);font-size:12px;background:#f1f2f4;padding:1px 5px;border-radius:4px}
+
+  footer{margin-top:20px;color:var(--slate);font-size:12px;font-family:var(--mono);text-align:center}
+  .toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;
+    padding:10px 16px;border-radius:8px;font-size:13.5px;opacity:0;pointer-events:none;transition:.2s;z-index:2000}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+  .hidden{display:none!important}
+
+  /* ---- Móvil (mobile-first táctil) ---- */
+  .mobilebar{display:none}
+  @media(max-width:640px){
+    body{font-size:16px}
+    .wrap{padding:12px 12px 88px}
+    header.app{padding:14px}
+    header.app h1{font-size:19px}
+    .toolbar{width:100%}
+    .toolbar button{flex:1 1 auto;padding:11px 12px;font-size:14px}
+    .filter{font-size:16px;padding:12px}
+    .selbar{flex-wrap:wrap}
+    .selbar button{padding:9px 11px;font-size:14px}
+    .selbar .count{width:100%;order:3;margin:4px 0 0}
+    .list{max-height:46vh}
+    .row{grid-template-columns:24px 70px 1fr;padding:12px;gap:10px}
+    .row input{width:22px;height:22px;margin-top:0}
+    .row .nm{font-size:14px}
+    .optrow label{font-size:15px;padding:3px 0}
+    .optrow input[type=radio]{width:20px;height:20px}
+    .startsel{font-size:15px}
+    .startsel select{font-size:16px;padding:12px}
+    .go{display:none}                       /* en móvil se usa la barra fija inferior */
+    #mapwrap{height:300px}
+    .summary .metric b{font-size:22px}
+    .maps .acts{flex-direction:column}
+    .maps .acts .btn,.maps .acts button{width:100%;text-align:center;padding:14px;font-size:15px}
+    ol.itin li{grid-template-columns:30px 1fr auto;padding:12px 0;gap:10px}
+    ol.itin .num{width:30px;height:30px;font-size:13px}
+    ol.itin .who .nm{font-size:14px}
+    ol.itin .leg{font-size:13px}
+    ol.itin .leg .go2{font-size:13px;padding:7px 13px;margin-top:6px}
+    details.docs>summary{padding:15px 16px;font-size:15px}
+    .mobilebar{display:block;position:fixed;left:0;right:0;bottom:0;z-index:200;background:var(--paper);
+      border-top:1px solid var(--line);padding:10px 12px;box-shadow:0 -6px 16px -8px rgba(0,0,0,.22)}
+    .mobilebar button{width:100%;padding:15px;font-size:16px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="app">
+    <div class="title">
+      <h1>Ruta de inspección de estructuras</h1>
+      <div class="sub">Selecciona las estructuras a visitar, calcula el orden óptimo y abre la ruta en Google Maps.</div>
+      <div class="src" id="srcInfo">Inventario: <b>—</b></div>
+    </div>
+    <div class="toolbar">
+      <button id="btnXlsx">Cargar .xlsx</button>
+      <button id="btnCsv">Cargar .csv</button>
+      <button id="btnReset" class="ghost">Restaurar contrato</button>
+      <input type="file" id="fileXlsx" accept=".xlsx,.xlsm" class="hidden">
+      <input type="file" id="fileCsv" accept=".csv,.txt" class="hidden">
+    </div>
+  </header>
+
+  <div class="grid">
+
+    <!-- CONTROL -->
+    <section class="panel">
+      <div class="hd"><h2>Estructuras</h2><span class="count" id="invCount">—</span></div>
+      <div class="bd">
+        <div class="acwrap">
+          <input type="text" class="filter" id="filter" placeholder="Buscar por código, nombre o distrito…" autocomplete="off">
+          <div class="ac" id="ac"></div>
+        </div>
+        <div class="selbar">
+          <button id="selAll" class="ghost">Seleccionar todas</button>
+          <button id="selNone" class="ghost">Ninguna</button>
+          <span class="count" id="selCount"><b>0</b> seleccionadas</span>
+        </div>
+        <div class="list" id="list"></div>
+
+        <fieldset class="opts">
+          <legend>Rutas guardadas</legend>
+          <div class="savedrow">
+            <select id="savedRoutes"><option value="">— selecciona una ruta —</option></select>
+            <button id="loadRoute" class="ghost">Cargar</button>
+            <button id="delRoute" class="ghost">Borrar</button>
+          </div>
+          <button id="saveRoute" class="ghost">Guardar selección actual como ruta…</button>
+          <div class="hint">Se guarda la lista de estructuras. Al cargarla, la ruta se calcula desde tu ubicación para iniciarla estés donde estés.</div>
+        </fieldset>
+
+        <fieldset class="opts">
+          <legend>Motor de cálculo</legend>
+          <div class="optrow">
+            <label><input type="radio" name="engine" value="road" checked> Tiempo por carretera</label>
+            <label><input type="radio" name="engine" value="line"> Línea recta</label>
+          </div>
+          <div class="hint">«Tiempo por carretera» usa el servicio OSRM (requiere internet); si no responde, calcula por línea recta automáticamente.</div>
+        </fieldset>
+
+        <fieldset class="opts">
+          <legend>Tipo de ruta</legend>
+          <div class="optrow">
+            <label><input type="radio" name="mode" value="open" checked> Abierta</label>
+            <label><input type="radio" name="mode" value="closed"> Cerrada (volver al inicio)</label>
+          </div>
+          <div class="startsel">
+            <span>Inicio</span>
+            <select id="startSel">
+              <option value="__gps__">Mi ubicación (GPS)</option>
+              <option value="__map__">Elegir en el mapa</option>
+              <option value="">Óptimo (elige el mejor)</option>
+            </select>
+          </div>
+          <div class="startnote" id="startNote"></div>
+        </fieldset>
+
+        <div class="go">
+          <button class="primary" id="calc">Calcular ruta óptima</button>
+        </div>
+        <div class="calcstatus" id="calcStatus"></div>
+        <div class="msg" id="selMsg"></div>
+      </div>
+    </section>
+
+    <!-- RESULTADOS -->
+    <section class="panel">
+      <div class="hd"><h2>Ruta</h2><span class="count" id="resCount"></span></div>
+      <div id="mapwrap">
+        <div id="map"></div>
+        <svg id="schematic" viewBox="0 0 600 360" preserveAspectRatio="xMidYMid meet"></svg>
+        <div class="maptag" id="maptag"></div>
+        <div class="placeholder" id="mapPlaceholder">El mapa aparecerá al calcular la ruta.</div>
+      </div>
+      <div class="resbd">
+        <div id="resEmpty" class="metric">Sin ruta calculada todavía.</div>
+        <div id="resContent" class="hidden">
+          <div class="summary" id="summary"></div>
+          <div class="attrib" id="attrib"></div>
+          <ol class="itin" id="itin"></ol>
+
+          <div class="maps">
+            <div class="acts">
+              <a id="openMaps" class="btn primary" target="_blank" rel="noopener">Abrir ruta completa en Maps</a>
+              <button id="copyMaps">Copiar enlace</button>
+              <button id="copyList">Copiar lista de paradas</button>
+              <button id="exportRoute">Exportar para el móvil</button>
+            </div>
+            <div class="urlbox" id="urlBox"></div>
+          </div>
+          <div class="msg" id="resMsg"></div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <details class="docs">
+    <summary>Instrucciones, supuestos y limitaciones</summary>
+    <div class="docbd">
+      <h3>Uso</h3>
+      <ul>
+        <li>Marca las estructuras a visitar (usa el filtro). Elige el <b>motor</b>: «Tiempo por carretera» (recomendado) o «Línea recta» (sin internet).</li>
+        <li>Elige ruta <b>abierta</b> o <b>cerrada</b> y, si quieres, un <b>inicio</b> fijo. Pulsa <b>Calcular ruta óptima</b>.</li>
+        <li>Abre la <b>ruta completa</b> en Google Maps con un toque (navegación con tráfico del momento).</li>
+        <li>O usa el enlace <b>«Maps ↗»</b> de cada parada para ir <b>de una en una</b> (ideal con muchas paradas: inspeccionas, vuelves y pinchas la siguiente). «Copiar lista de paradas» te lleva la ruta ordenada al móvil.</li>
+        <li><b>Rutas guardadas</b>: guarda la selección con un nombre y recupérala cuando quieras; al cargarla, la ruta se calcula <b>desde tu ubicación</b> para iniciarla estés donde estés. Se guarda en ese navegador/equipo.</li>
+        <li><b>Reordenar a mano</b>: en el itinerario, usa ↑/↓ en cada parada para cambiar el orden; se marca «Orden manual» y se recalculan tiempos, mapa y enlace.</li>
+      </ul>
+      <h3>Motor «Tiempo por carretera»</h3>
+      <ul>
+        <li>Obtiene la matriz de tiempos entre estructuras del servicio público <b>OSRM</b> (una sola consulta) y ordena por tiempo de conducción, teniendo en cuenta sentidos (matriz asimétrica).</li>
+        <li>Es tiempo por carretera según la red de <b>OpenStreetMap</b>, <b>sin tráfico en directo</b>. Para congestión en tiempo real haría falta un servicio de pago (Google/Mapbox).</li>
+        <li>El servidor OSRM público es de <b>uso no comercial y sin garantías</b>; puede estar bloqueado por el proxy corporativo. Si falla, la app calcula por línea recta y lo avisa.</li>
+        <li>Atribución obligatoria (se muestra en pantalla): ruteo <b>OSRM</b>, datos <b>© OpenStreetMap contributors</b>.</li>
+      </ul>
+      <h3>Carga de inventario</h3>
+      <ul>
+        <li>Trae incorporadas las <b>223 estructuras del contrato</b>: no necesitas importar nada para el uso normal. Para altas o cambios, carga un Excel con <code>CODIGO</code>, <code>NOMBRE</code>, <code>DISTRITO</code> y coordenadas.</li>
+        <li><b>Persistencia</b>: al importar un Excel queda <b>guardado en ese navegador/equipo</b> y se usa a partir de entonces; «Restaurar contrato» vuelve al inventario incorporado.</li>
+        <li>Coordenadas por prioridad: enlace de Google Maps (<code>q=lat,lon</code>) → columnas <code>LAT</code>/<code>LON</code> → <code>Coordenadas UTM</code> (se convierte asumiendo <b>ETRS89 huso 30N</b>).</li>
+        <li><b>.xlsx</b> se lee con un <b>lector integrado (sin conexión)</b>, sin depender de ningún servidor externo. <b>.csv</b> también vale (separador <code>;</code> o <code>,</code>).</li>
+      </ul>
+      <h3>Uso en el móvil</h3>
+      <ul>
+        <li>Copia el fichero al teléfono (correo, Archivos o Drive) y ábrelo con el navegador (Chrome en Android, Safari en iPhone).</li>
+        <li><b>Planificar en el PC y navegar en el móvil</b>: calcula la ruta y pulsa «Exportar para el móvil»; se descarga una ficha con la ruta que puedes enviarte al teléfono y abrir sin volver a cargar el Excel.</li>
+        <li>La interfaz se adapta a pantalla táctil: casillas y botones grandes, y un botón de calcular fijo abajo. Selecciona, calcula y usa «Maps ↗» en cada parada para navegar de una en una.</li>
+        <li>El lector de Excel integrado requiere <b>iOS Safari 16.4+</b> o Chrome reciente; en móviles antiguos usa CSV.</li>
+      </ul>
+      <h3>Instalación sin conexión (PWA)</h3>
+      <ul>
+        <li>Sube los ficheros <b>juntos en la misma carpeta</b> (<code>index.html</code>, <code>sw.js</code>, <code>manifest.webmanifest</code>, <code>icon-192.png</code>, <code>icon-512.png</code>) a una URL. Ábrela en Chrome y elige <b>«Instalar aplicación»</b> o «Añadir a pantalla de inicio».</li>
+        <li>Tras abrirla una vez con conexión, funciona <b>sin datos</b>: interfaz, inventario, cálculo por línea recta, enlaces de navegación y exportación.</li>
+        <li>Solo necesitan datos el <b>mapa (teselas)</b> y el <b>tiempo por carretera</b>; sin conexión la app usa el esquema y la línea recta. Descarga el mapa de Madrid sin conexión en Google Maps para navegar sin cobertura.</li>
+      </ul>
+      <h3>Supuestos y limitaciones</h3>
+      <ul>
+        <li>Orden <b>exacto garantizado</b> hasta 12 paradas (Held-Karp); con más, método <b>aproximado</b> (vecino más próximo + 2-opt), etiquetado.</li>
+        <li>Google Maps admite un número limitado de paradas (~10). Si superas ese número, quizá no cargue todas: divide la ruta.</li>
+        <li>Las líneas del mapa entre paradas son indicativas (rectas); el trazado real por calles lo da Google Maps al abrir el enlace.</li>
+        <li>No se modifican las coordenadas originales. Las filas sin coordenadas válidas se descartan y se listan.</li>
+      </ul>
+      <h3>Mejoras previstas</h3>
+      <ul>
+        <li>Congestión en <b>tiempo real</b> (proveedor con tráfico, requiere clave/facturación).</li>
+        <li>Migración a OSRM <b>autoalojado</b> o proveedor con licencia para uso sancionado de empresa.</li>
+        <li>Reparto en <b>varias jornadas</b> con duración por inspección y ventanas horarias; exportación a PDF/Excel.</li>
+        <li>Huso UTM configurable.</li>
+      </ul>
+    </div>
+  </details>
+
+  <footer>Herramienta local · v4.6 · reordenar a mano · rutas guardadas · PWA</footer>
+</div>
+
+<div class="mobilebar" id="mobilebar">
+  <button class="primary" id="calcMobile">Calcular ruta óptima</button>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* =========================================================================
+   Ruta de inspección de estructuras — aplicación autónoma (v4.6, reordenar a mano + rutas guardadas + inicio GPS/mapa + PWA)
+   Solver y datos 100% locales. Tiempos por carretera vía OSRM público
+   (con respaldo a línea recta). Mapa Leaflet/OSM con respaldo SVG.
+   ========================================================================= */
+"use strict";
+
+/* ---------- Inventario incorporado (mismas columnas que el fichero real) --- */
+const DEFAULT_ROWS = [
+  ["DISTRITO", "BLOQUE", "CODIGO", "NOMBRE", "Coordenadas UTM", "Enlace Google Maps"],
+  ["01.- CENTRO", "B1", "VE0101", "VIADUCTO DE MADRID. CALLE BAILÉN SOBRE CALLE SEGOVIA", "439448.754466, 4473905.580965", "https://www.google.com/maps?q=40.413570002056616,-3.7136870000159625"],
+  ["01.- CENTRO", "B1", "VE0109", "PUENTE SEGOVIA sobre RÍO MANZANARES", "438736.382607, 4473960.210847", "https://www.google.com/maps?q=40.41401000205958,-3.7220880000215564"],
+  ["02.- ARGANZUELA", "B1", "PE0201", "M-30 - VADO sobre M-30", "440976.742486, 4470910.884761", "https://www.google.com/maps?q=40.3867020020568,-3.695401000022429"],
+  ["02.- ARGANZUELA", "B1", "PE0204", "JUAN DE MARIANA - CIRCON- PARQUE DELICIAS SOBRE FFCC", "441691.771212, 4472109.707968", "https://www.google.com/maps?q=40.39755200205453,-3.6870870000199427"],
+  ["02.- ARGANZUELA", "B1", "PE0205", "AVENIDA PLANETARIO-PARQUE ENRIQUE TIERNO GALVÁN", "441686.249325, 4471235.358283", "https://www.google.com/maps?q=40.389675002050545,-3.687072000022736"],
+  ["02.- ARGANZUELA", "B1", "PE7006", "Conexión entre Eusebio Cuenca y Juan de Mariana", "441745.751948, 4471607.431365", "https://www.google.com/maps?q=40.393031002053334,-3.6864050000214865"],
+  ["02.- ARGANZUELA", "B1", "PE7007", "Paseo del Dortor Vallejo Najera 61", "439328.195178, 4472805.70168", "https://www.google.com/maps?q=40.40365300205556,-3.7150030000161727"],
+  ["02.- ARGANZUELA", "B1", "PE7018", "Parque de las Peñuelas", "440167.517919, 4472428.08705", "https://www.google.com/maps?q=40.400312002057305,-3.7050770000134396"],
+  ["02.- ARGANZUELA", "B1", "PE7021", "Amaltea (sobre el FFCC)", "441960.949779, 4471963.868206", "https://www.google.com/maps?q=40.39625700205009,-3.6839020000207943"],
+  ["02.- ARGANZUELA", "B1", "PE7039", "Parque Tierno Galvan", "441973.49283, 4470798.100748", "https://www.google.com/maps?q=40.38575600205144,-3.6836480000136045"],
+  ["02.- ARGANZUELA", "B1", "PE7040", "Parque Tierno Galvan", "442079.416013, 4470917.612564", "https://www.google.com/maps?q=40.386840002052764,-3.682411000019136"],
+  ["02.- ARGANZUELA", "B1", "PE7041", "Parque Tierno Galvan", "442183.567985, 4471083.095777", "https://www.google.com/maps?q=40.388338002054056,-3.6811990000142494"],
+  ["02.- ARGANZUELA", "B1", "PE7046", "PARQUE TIERNO GALVAN", "441791.404261, 4471813.991821", "https://www.google.com/maps?q=40.39489500205398,-3.6858860000232925"],
+  ["02.- ARGANZUELA", "B1", "VE0203", "STA. MARÍA DE LA CABEZA sobre Pº YESERÍAS - Pº CHOPERA", "440332.629751, 4472039.360054", "https://www.google.com/maps?q=40.396822002055146,-3.7030950000140965"],
+  ["02.- ARGANZUELA", "B1", "VE0208", "PUENTE DE PRAGA sobre RÍO MANZANARES", "440218.915894, 4471881.082345", "https://www.google.com/maps?q=40.39538800205262,-3.7044200000196827"],
+  ["02.- ARGANZUELA", "B1", "VE0210", "PUENTE TOLEDO (HISTÓRICO) sobre RÍO MANZANARES", "439261.27151, 4472159.851848", "https://www.google.com/maps?q=40.39783000205606,-3.7157300000230595"],
+  ["02.- ARGANZUELA", "B1", "VE0211", "PUENTE TOLEDO (RAMAL OESTE)", "439170.831829, 4472519.468983", "https://www.google.com/maps?q=40.40106300205619,-3.716830000020549"],
+  ["02.- ARGANZUELA", "B2", "VE0212", "PUENTE PRINCESA-PUENTE ANDALUCÍA sobre RÍO MANZANARES", "440793.036807, 4471220.373214", "https://www.google.com/maps?q=40.389477002049,-3.6975940000194143"],
+  ["02.- ARGANZUELA", "B2", "VI0204", "ACANTO - CERRO NEGRO BAJO FF.CC.", "442814.122401, 4471860.075774", "https://www.google.com/maps?q=40.39538100205231,-3.6738400000143483"],
+  ["03.- RETIRO", "B2", "PE0308", "SIRIO-MANUEL MACHADO (Centro Comercial) sobre M-30", "443881.459943, 4473890.07582", "https://www.google.com/maps?q=40.41374100205873,-3.661443000011435"],
+  ["03.- RETIRO", "B2", "PE0309", "ARREGUI Y ARUEJ (Parque Adelfas)-PEÑA PRIETA sobre M-30", "443246.41545, 4472359.536958", "https://www.google.com/maps?q=40.39991000205373,-3.6687910000202204"],
+  ["03.- RETIRO", "B2", "PE0310", "Escalera calle del Alberche", "442509.312590, 4472619.352634", "https://www.google.com/maps?q=40.4022,-3.6775"],
+  ["03.- RETIRO", "B3", "VE0305", "Puente de Pedro Bosch sobre FF.CC.", "442609.043338, 4472322.092972", "https://www.google.com/maps?q=40.399529002057434,-3.6762980000161853"],
+  ["03.- RETIRO", "B3", "VI0304", "Pº REINA CRISTINA - AV. MEDITERRÁNEO bajo PL. MARIANO DE CAVIA", "442407.051011, 4473204.804949", "https://www.google.com/maps?q=40.40746700205336,-3.6787580000162774"],
+  ["04.- SALAMANCA", "B3", "PE0416", "AV BRASILIA (Parque Breogán)-SALVADOR DE MADARIAGA sobre M-30", "443990.545021, 4476644.535206", "https://www.google.com/maps?q=40.43856200206279,-3.6604000000130172"],
+  ["04.- SALAMANCA", "B3", "PE0417", "RAMÓN AGUINAGA (P. Fuente del Berro)-SAN MARCELO sobre M-30", "443937.345192, 4475349.493762", "https://www.google.com/maps?q=40.42689200205916,-3.6609130000117136"],
+  ["04.- SALAMANCA", "B3", "PE0418", "AVENIDA DE AMERICA  - PARQUE DE LAS AVENIDAS sobre A-2", "443713.949965, 4477083.750311", "https://www.google.com/maps?q=40.4425,-3.6637"],
+  ["04.- SALAMANCA", "B3", "PE0419", "Ayala - Marqués de Zafra, junto a Plaza Manuel Becerra", "443301.869825, 4475349.16816", "https://www.google.com/maps?q=40.42684600205553,-3.668404000017435"],
+  ["04.- SALAMANCA", "B3", "PE0420", "Pasarela de Marqués de Zafra", "443164.764111, 4475123.088133", "https://www.google.com/maps?q=40.4248,-3.67"],
+  ["04.- SALAMANCA", "B3", "PI0413", "LAGASCA - PARQUE DEL RETIRO bajo ALCALA", "441832.580648, 4474658.952424", "https://www.google.com/maps?q=40.42052676361648,-3.6856608834510385"],
+  ["04.- SALAMANCA", "B2", "VE0403", "Juan Bravo sobre Paseo de la Castellana (Paso elevado de Enrique de la Mata Gorostizaga)", "441418.358176, 4476045.012674", "https://www.google.com/maps?q=40.43298400206416,-3.6906710000133764"],
+  ["04.- SALAMANCA", "B2", "VE0407", "VENTAS SOBRE COCHERAS", "443848.455618, 4475815.495953", "https://www.google.com/maps?q=40.43108400206338,-3.6620020000212916"],
+  ["04.- SALAMANCA", "B2", "VE0408", "Ramal de O`Donnell", "443541.582728, 4474681.87824", "https://www.google.com/maps?q=40.42085100205562,-3.6655190000154745"],
+  ["04.- SALAMANCA", "B2", "VI0402", "FRANCISCO SILVELA bajo AVDA. AMERICA - Mª MOLINA", "442561.02156, 4476509.386107", "https://www.google.com/maps?q=40.43724700206092,-3.6772420000216153"],
+  ["05.- CHAMARTIN", "B3", "PE0501", "JOSE VASCONCELOS - GRAL. ARANDA sobre Pº CASTELLANA", "441685.418382, 4480306.705697", "https://www.google.com/maps?q=40.471394002072145,-3.68791400001622"],
+  ["05.- CHAMARTIN", "B3", "PE0505", "AV BURGOS-SERRANO GALVACHE (Nudo La Paloma) sobre M-30", "442805.514009, 4480810.690806", "https://www.google.com/maps?q=40.47601200206664,-3.674747000016125"],
+  ["05.- CHAMARTIN", "B4", "PE0506", "FEDERICO SALMÓN-ANGEL GORDILLO sobre M-30", "443386.222249, 4479425.793166", "https://www.google.com/maps?q=40.463576002062766,-3.6677730000143187"],
+  ["05.- CHAMARTIN", "B4", "PE0507", "ÁNGEL HERNÁNDEZ-RAFAEL BERGAMÍN (S. Juan Bautista) sobre M-30", "443772.679939, 4477766.885865", "https://www.google.com/maps?q=40.44865800206795,-3.6630680000185656"],
+  ["05.- CHAMARTIN", "B4", "VE0506", "RAIMUNDO FDEZ. VILLAVERDE - JOAQUIN COSTA sobre Pº CASTELLANA", "441230.559511, 4477526.426143", "https://www.google.com/maps?q=40.446316002063924,-3.6930220000208207"],
+  ["05.- CHAMARTIN", "B4", "VI0507", "PASEO DE LA CASTELLANA BAJO SINESIO DELGADO - AVDA. PADRE FCO. PALAU Y QUER", "441761.274656, 4480663.780483", "https://www.google.com/maps?q=40.47461600206534,-3.6870520000231988"],
+  ["06.- TETUAN", "B4", "PE0601", "RAMPA PEATONAL NORTE - PLAZA DE PABLO RUIZ PICASSO (AZCA)", "441291.987437, 4477897.706663", "https://www.google.com/maps?q=40.449665002063405,-3.692332000023621"],
+  ["06.- TETUAN", "B4", "PE0602", "RAMPA PEATONAL SUR - PLAZA DE PABLO RUIZ PICASSO (AZCA)", "441303.664224, 4477851.103201", "https://www.google.com/maps?q=40.449246002062424,-3.692190000022716"],
+  ["08.- FUENCARRAL-EL PARDO", "B4", "PE0801", "VIRGEN DE ARANZAZU - FRANCISCO SANCHA sobre ffcc", "441618.063766, 4482093.341298", "https://www.google.com/maps?q=40.48748400206774,-3.6888730000202767"],
+  ["08.- FUENCARRAL-EL PARDO", "B4", "PE0802", "PREVENTORIO-ALAMEDILLAS sobre M-607", "440745.172016, 4483367.029912", "https://www.google.com/maps?q=40.498896002072726,-3.6992910000145263"],
+  ["08.- FUENCARRAL-EL PARDO", "B4", "PE0803", "AVENIDA DE BURGOS - AVDA MANOTERAS sobre A-1", "443028.247373, 4482307.477046", "https://www.google.com/maps?q=40.48951100206799,-3.6722540000222157"],
+  ["08.- FUENCARRAL-EL PARDO", "B4", "PE0808", "Pasarela BBVA", "443812.433864, 4483295.723904", "https://www.google.com/maps?q=40.49846700207178,-3.663089000019693"],
+  ["08.- FUENCARRAL-EL PARDO", "B4", "PE0809", "CUARTELES DE VALVERDE SOBRE CTRA. DE FUENCARRAL A ALCOBENDAS", "443402.876039, 4484168.334537", "https://www.google.com/maps?q=40.5063,-3.668"],
+  ["08.- FUENCARRAL-EL PARDO", "B4", "PE0810", "Pasarela junto a Hospital Ramón y Cajal", "441261.406410, 4482297.723996", "https://www.google.com/maps?q=40.4893,-3.6931"],
+  ["08.- FUENCARRAL-EL PARDO", "B4", "PE0811", "Pasarela sobre M-607", "441152.282847, 4483508.568165", "https://www.google.com/maps?q=40.5002,-3.6945"],
+  ["08.- FUENCARRAL-EL PARDO", "B4", "PE0831", "ANILLO VERDE CICLISTA SOBRE M-607", "441559.940583, 4484491.454163", "https://www.google.com/maps?q=40.50908300207482,-3.689780000016409"],
+  ["08.- FUENCARRAL-EL PARDO", "B4", "PE0919", "Pasarela junto a Urbanización Fuentelarreina", "438165.374262, 4484043.320661", "https://www.google.com/maps?q=40.5048,-3.7298"],
+  ["08.- FUENCARRAL-EL PARDO", "B4", "PE7026", "Parque Cerro Peñabel", "439214.989061, 4480676.59675", "https://www.google.com/maps?q=40.4745490020674,-3.7170900000200686"],
+  ["08.- FUENCARRAL-EL PARDO", "B4", "PE7027", "Parque Cerro Peñabel", "439207.794655, 4480646.683027", "https://www.google.com/maps?q=40.47427900206469,-3.717172000022209"],
+  ["08.- FUENCARRAL-EL PARDO", "B4", "PI0806", "ANTONIO ROBLES - FRANCISCO SANCHA bajo ffcc", "441428.958804, 4482167.197005", "https://www.google.com/maps?q=40.4881360020669,-3.6911110000214378"],
+  ["08.- FUENCARRAL-EL PARDO", "B4", "VE0810", "PUENTE CAPUCHINOS (EL PARDO) sobre RÍO MANZANARES", "433983.695104, 4485857.030369", "https://www.google.com/maps?q=40.52081600207296,-3.779339000024493"],
+  ["08.- FUENCARRAL-EL PARDO", "B4", "VE0816", "LAS TABLAS enlace M-40 sobre A1 (Estructura E1)", "444240.978014, 4484625.490375", "https://www.google.com/maps?q=40.5104750020763,-3.658149000017039"],
+  ["08.- FUENCARRAL-EL PARDO", "B5", "VE0825", "CELEORAMA GOMEZ MONTIJA sobre M-40", "437981.677702, 4482839.064257", "https://www.google.com/maps?q=40.49393800206942,-3.7318500000138144"],
+  ["08.- FUENCARRAL-EL PARDO", "B5", "VE0828", "M-603 SOBRE FF.CC. EN PK 0+300", "442045.773214, 4484775.40316", "https://www.google.com/maps?q=40.511675002077574,-3.684072000022283"],
+  ["08.- FUENCARRAL-EL PARDO", "B5", "VE0829", "Acceso a Centro Cultural Herrera Oria sobre el FFCC", "440780.330025, 4483622.513778", "https://www.google.com/maps?q=40.5012,-3.6989"],
+  ["08.- FUENCARRAL-EL PARDO", "B5", "VI0801", "MORALZARZAL BAJO AVDA. CARDENAL HERRERA ORIA", "440324.313077, 4482131.305221", "https://www.google.com/maps?q=40.487734002073644,-3.704141000018089"],
+  ["08.- FUENCARRAL-EL PARDO", "B5", "VI0802", "ISLAS ALEUTIANAS - VALENTIN SERRANO bajo CARDENAL HERRERA ORIA", "438286.135467, 4481087.716219", "https://www.google.com/maps?q=40.47818400207199,-3.7280870000236184"],
+  ["08.- FUENCARRAL-EL PARDO", "B5", "VI0804", "ISLA TABARCA bajo CARDENAL HERRERA ORIA", "438675.268961, 4481269.344957", "https://www.google.com/maps?q=40.47984900206959,-3.7235140000231586"],
+  ["08.- FUENCARRAL-EL PARDO", "B5", "VI0807-A", "VENTISQUERO DE LA CONDESA-M40 bajo ffcc", "439024.067407, 4483305.915731", "https://www.google.com/maps?q=40.49822078415443,-3.719595093269224"],
+  ["08.- FUENCARRAL-EL PARDO", "B5", "VI0807-B", "VENTISQUERO DE LA CONDESA-M40 bajo ffcc", "438994.676346, 4483400.203996", "https://www.google.com/maps?q=40.499068002076235,-3.7199510000198104"],
+  ["08.- FUENCARRAL-EL PARDO", "B5", "VI0811-A", "ENLACE LAS TABLAS - M 40 (Estructuras E10)", "442564.561154, 4485637.037179", "https://www.google.com/maps?q=40.51947300207547,-3.6780270000223085"],
+  ["08.- FUENCARRAL-EL PARDO", "B5", "VI0811-B", "ENLACE LAS TABLAS - M 40 (Estructuras E3)", "443754.152019, 4484683.310622", "https://www.google.com/maps?q=40.51096300207894,-3.663900000021808"],
+  ["08.- FUENCARRAL-EL PARDO", "B5", "VI0811-C", "ENLACE LAS TABLAS - M 40 (Estructuras E4)", "443579.328418, 4484790.973879", "https://www.google.com/maps?q=40.51192100207354,-3.665973000022871"],
+  ["08.- FUENCARRAL-EL PARDO", "B5", "VI0811-E", "ENLACE LAS TABLAS - M 40 (Estructuras E6)", "443194.554745, 4485298.419346", "https://www.google.com/maps?q=40.516466002072185,-3.6705600000152514"],
+  ["08.- FUENCARRAL-EL PARDO", "B5", "VI0811-F", "ENLACE LAS TABLAS - M 40 (Estructuras E7)", "442681.35748, 4485501.154382", "https://www.google.com/maps?q=40.51825700207734,-3.6766360000124325"],
+  ["08.- FUENCARRAL-EL PARDO", "B5", "VI0811-G", "ENLACE LAS TABLAS - M 40 (Estructuras E8)", "442699.415614, 4485569.174727", "https://www.google.com/maps?q=40.518871002079734,-3.6764290000123694"],
+  ["08.- FUENCARRAL-EL PARDO", "B5", "VI0811-H", "ENLACE LAS TABLAS - M 40 (Estructuras E9)", "442381.420721, 4485594.93241", "https://www.google.com/maps?q=40.51908100207715,-3.6801850000176164"],
+  ["08.- FUENCARRAL-EL PARDO", "B5", "VI0823", "ANTONIO ROBLES - FRANCISCO SANCHA bajo ffcc", "441454.889624, 4482166.660931", "https://www.google.com/maps?q=40.48813300206958,-3.690805000023284"],
+  ["08.- FUENCARRAL-EL PARDO", "B5", "VI0824", "AVENIDA MONASTERIO DE SILOS bajo ffcc", "439182.7897, 4483283.999362", "https://www.google.com/maps?q=40.49803500207281,-3.7177200000227986"],
+  ["08.- FUENCARRAL-EL PARDO", "B5", "VI0829", "AVDA. DEL MONTE VALDELATAS BAJO M-603", "443650.253894, 4485578.703868", "https://www.google.com/maps?q=40.51902200207368,-3.665206000020499"],
+  ["08.- FUENCARRAL-EL PARDO", "B5", "VI0830", "CALLE DE NTRA. SRA. DE VALVERDE BAJO M-603", "441963.417144, 4484709.548584", "https://www.google.com/maps?q=40.51107600207179,-3.685038000020813"],
+  ["08.- FUENCARRAL-EL PARDO", "B5", "VI0831", "Arroyo de los Pinos bajo calle Dr Juan José López Ibor", "442319.478759, 4483221.951278", "https://www.google.com/maps?q=40.4977,-3.6807"],
+  ["09.- MONCLOA-ARAVACA", "B5", "PE0901", "FUENTE DEL REY - CTRA. CASTILLA sobre M-500", "434976.227731, 4478547.224034", "https://www.google.com/maps?q=40.45504600206457,-3.766873000015169"],
+  ["09.- MONCLOA-ARAVACA", "B5", "PE0902", "FRANCISCO Y JACINTO ALCANTARA sobre ffcc", "438475.483814, 4475346.718143", "https://www.google.com/maps?q=40.42648100205707,-3.725297000022577"],
+  ["09.- MONCLOA-ARAVACA", "B5", "PE0903", "VALDEVERDEJA - DOROTEO BENACHE sobre SINESIO DELGADO", "439303.955134, 4479814.008676", "https://www.google.com/maps?q=40.46678500206701,-3.715958000019877"],
+  ["09.- MONCLOA-ARAVACA", "B5", "PE0905", "Pº PIÑONEROS (CASA CAMPO)-DEPURADORA sobre M-500 (Ctra. Castilla)", "437341.703257, 4476464.52403", "https://www.google.com/maps?q=40.436466002059504,-3.738772000019013"],
+  ["09.- MONCLOA-ARAVACA", "B5", "PE0906", "Pasarela Atirantada sobre A-6 - Escuela de Ingenieros Agrónomos", "438116.830805, 4477043.868861", "https://www.google.com/maps?q=40.44174300206211,-3.729690000020246"],
+  ["09.- MONCLOA-ARAVACA", "B5", "PE0908", "Pasarela Atirantada sobre A-6 - Facultad de Veterinaria", "437464.202981, 4477899.055348", "https://www.google.com/maps?q=40.44939800206191,-3.7374690000193636"],
+  ["09.- MONCLOA-ARAVACA", "B5", "PE0909", "Pasarela del Anillo Ciclista sobre A-6", "436601.913448, 4478911.043254", "https://www.google.com/maps?q=40.45844900206756,-3.747738000016094"],
+  ["09.- MONCLOA-ARAVACA", "B5", "PE0910", "Pasarela sobre A-6 en el PK 7+100", "436543.801145, 4479007.669021", "https://www.google.com/maps?q=40.459315002067385,-3.7484330000176977"],
+  ["09.- MONCLOA-ARAVACA", "B5", "PE0911", "DEHESA DE LA VILLA (PASARELA)", "437321.07243, 4478438.3086", "https://www.google.com/maps?q=40.45424500206173,-3.7392100000228323"],
+  ["09.- MONCLOA-ARAVACA", "B5", "PE0912", "Parque de la Bombilla sobre FFCC", "438115.548734, 4475933.692031", "https://www.google.com/maps?q=40.43174200206158,-3.7295970000225203"],
+  ["09.- MONCLOA-ARAVACA", "B5", "PE0914", "Pasarela anillo ciclista sobre río Manzanares", "436639.290777, 4478778.848717", "https://www.google.com/maps?q=40.45726100206974,-3.7472840000161627"],
+  ["09.- MONCLOA-ARAVACA", "B6", "PE0915", "Pasarela de Casa de Campo a Fuente de la Teja", "436933.256471, 4475583.662031", "https://www.google.com/maps?q=40.4285,-3.7435"],
+  ["09.- MONCLOA-ARAVACA", "B6", "PE0916", "Pasarela junto Avda. de Valladolid", "438579.112336, 4476635.663122", "https://www.google.com/maps?q=40.4381,-3.7242"],
+  ["09.- MONCLOA-ARAVACA", "B6", "PE0917", "Pasarela junto a Facultad de Veterinaria", "438329.152056, 4477181.654185", "https://www.google.com/maps?q=40.443,-3.7272"],
+  ["09.- MONCLOA-ARAVACA", "B6", "PE0918", "Pasarela junto a Club Puerta de Hierro (Anillo Verde Ciclista)", "436224.621004, 4480029.996468", "https://www.google.com/maps?q=40.4685,-3.7523"],
+  ["09.- MONCLOA-ARAVACA", "B6", "PE0920", "PASARELA SOBRE EL FFCC EN CTRA.HUMERA-ARAVACA M-508", "433214.124675, 4473284.700263", "https://www.google.com/maps?q=40.4075,-3.7871"],
+  ["09.- MONCLOA-ARAVACA", "B5", "PE7048", "PASARELA PARQUE ARROYO POZUELO FRENTE A COLONIA DE SANTA MARÍA", "433159.856491, 4478339.202521", "https://www.google.com/maps?q=40.453028002063476,-3.7882710000194013"],
+  ["09.- MONCLOA-ARAVACA", "B5", "PE7050", "PARQUE CALLE ALVARO CABALLERO", "430892.092466, 4476380.703644", "https://www.google.com/maps?q=40.4352,-3.8148"],
+  ["09.- MONCLOA-ARAVACA", "B5", "PI0907", "AVENIDA PUERTA DE HIERRO - CIUDAD UNIVERSITARIA bajo A-6", "437646.235487, 4477748.858483", "https://www.google.com/maps?q=40.44805864903439,-3.7353077572857605"],
+  ["09.- MONCLOA-ARAVACA", "B5", "VE0903", "DOCTOR FEDERICO RUBIO Y GALI sobre ALMIRANTE FRANCISCO MORENO", "439422.324651, 4478432.668483", "https://www.google.com/maps?q=40.45435000206489,-3.714430000021154"],
+  ["09.- MONCLOA-ARAVACA", "B5", "VE0907", "CTRA.  DE CASTILLA - AVDA. DE SENECA", "437629.985214, 4476217.124391", "https://www.google.com/maps?q=40.43425900206452,-3.7353490000169836"],
+  ["09.- MONCLOA-ARAVACA", "B6", "VE0908", "SINESIO DELGADO sobre VILLAMIL", "439540.056706, 4480021.791347", "https://www.google.com/maps?q=40.4686740020692,-3.7131930000152766"],
+  ["09.- MONCLOA-ARAVACA", "B6", "VE0910", "ENLACE DEL BARRIAL - PUENTE sobre A-6", "432466.907102, 4479519.127049", "https://www.google.com/maps?q=40.46360100206388,-3.7965680000221234"],
+  ["09.- MONCLOA-ARAVACA", "B6", "VE0910-B", "ENLACE DEL BARRIAL - PUENTE sobre M-40 (TRAMO SUR)", "432516.554557, 4479477.272565", "https://www.google.com/maps?q=40.46322800206778,-3.7959780000201357"],
+  ["09.- MONCLOA-ARAVACA", "B6", "VE0911", "ENLACE DEL BARRIAL - PUENTE sobre A-6", "432402.911156, 4479643.258798", "https://www.google.com/maps?q=40.46471400206251,-3.7973360000185563"],
+  ["09.- MONCLOA-ARAVACA", "B6", "VE0912", "ENLACE DEL BARRIAL - PUENTE  sobre VIA DE SERVICIO", "432449.198027, 4479821.011826", "https://www.google.com/maps?q=40.46631900206356,-3.7968090000250245"],
+  ["09.- MONCLOA-ARAVACA", "B6", "VE0913", "PUENTE DE LA REINA VICTORIA sobre RIO MANZANARES", "438333.452174, 4475127.646875", "https://www.google.com/maps?q=40.424497002059404,-3.7269500000238387"],
+  ["09.- MONCLOA-ARAVACA", "B6", "VE0914", "CTRA. HUMERA - ARAVACA sobre ARROYO POZUELO", "433919.622744, 4478343.226501", "https://www.google.com/maps?q=40.453125002063295,-3.779312000015774"],
+  ["09.- MONCLOA-ARAVACA", "B6", "VE0915", "PUENTE SAN FERNANDO sobre RÍO MANZANARES", "436602.079155, 4479020.71827", "https://www.google.com/maps?q=40.45943700206395,-3.7477470000186286"],
+  ["09.- MONCLOA-ARAVACA", "B6", "VE0916", "PUENTE SOBRE FCC EN CTRA.HUMERA-ARAVACA M-508", "434091.662237, 4477839.837855", "https://www.google.com/maps?q=40.44860400206694,-3.77723100002137"],
+  ["09.- MONCLOA-ARAVACA", "B7", "VI0919", "Paso inferior de la calle Irún", "439328.544145, 4474998.416932", "https://www.google.com/maps?q=40.42340600205889,-3.715208000023725"],
+  ["15.- CIUDAD LINEAL", "B7", "PE1501", "Escalera Av. Donostiarra", "443494.540176, 4477229.710434", "https://www.google.com/maps?q=40.4438,-3.6663"],
+  ["15.- CIUDAD LINEAL", "B7", "VE1501", "AVDA. DE DAROCA sobre MARQUES DE CORBERA", "444930.38079, 4475476.558828", "https://www.google.com/maps?q=40.42810300205776,-3.6492180000126204"],
+  ["15.- CIUDAD LINEAL", "B7", "VI1505", "FELIX RODRIGUEZ DE LA FUENTE bajo M-23 (plong. O´Donnell)", "444271.356866, 4474258.148196", "https://www.google.com/maps?q=40.41708300205801,-3.6568800000224515"],
+  ["16.- HORTALEZA", "B7", "PE1502", "Pasarela del Nudo de la Paloma", "446380.443164, 4479928.136005", "https://www.google.com/maps?q=40.4683,-3.6325"],
+  ["16.- HORTALEZA", "B7", "PE1503", "Pasarela de C/ Agastia sobre A-2", "446327.948642, 4478518.737430", "https://www.google.com/maps?q=40.4556,-3.633"],
+  ["16.- HORTALEZA", "B7", "PE1601", "PINAR DEL REY sobre GRAN VIA DE HORTALEZA", "444381.600422, 4479722.266074", "https://www.google.com/maps?q=40.46631400206397,-3.6560590000213584"],
+  ["16.- HORTALEZA", "B7", "PE1602", "AVDA. PICEAS-M40 (Anillo Ciclista)", "447496.396072, 4478817.604669", "https://www.google.com/maps?q=40.45836700206731,-3.6192450000119663"],
+  ["16.- HORTALEZA", "B7", "PE7030", "Parque de la Villarrosa", "446398.093265, 4479942.21856", "https://www.google.com/maps?q=40.46842800206628,-3.6322930000131377"],
+  ["16.- HORTALEZA", "B7", "PE7031", "Parque de la Villarrosa", "446449.186227, 4479950.067214", "https://www.google.com/maps?q=40.46850200206936,-3.631691000012431"],
+  ["16.- HORTALEZA", "B7", "PE7032", "Parque de la Villarrosa", "446509.136366, 4479916.114652", "https://www.google.com/maps?q=40.46820000206761,-3.630981000020153"],
+  ["16.- HORTALEZA", "B7", "PE7033", "Parque de la Villarrosa", "446513.56233, 4479942.280427", "https://www.google.com/maps?q=40.468436002066895,-3.630931000020736"],
+  ["16.- HORTALEZA", "B7", "PE7034", "Parque de la Villarrosa", "446538.305991, 4479916.905263", "https://www.google.com/maps?q=40.46820900206376,-3.6306370000175403"],
+  ["16.- HORTALEZA", "B7", "PE7035", "Parque de la Villarrosa", "446564.521144, 4479907.615542", "https://www.google.com/maps?q=40.46812700206892,-3.6303270000196033"],
+  ["16.- HORTALEZA", "B7", "PE7036", "Parque de la Villarrosa", "446613.144687, 4479890.173593", "https://www.google.com/maps?q=40.46797300206562,-3.6297520000159684"],
+  ["16.- HORTALEZA", "B7", "PE7037", "Parque de la Villarrosa", "446640.466937, 4479869.664644", "https://www.google.com/maps?q=40.467790002065236,-3.62942800001984"],
+  ["16.- HORTALEZA", "B7", "PE7038", "Parque de la Villarrosa", "446694.184889, 4479829.430696", "https://www.google.com/maps?q=40.46743100206628,-3.628791000011089"],
+  ["16.- HORTALEZA", "B7", "VE1602", "GREGORIO SANCHEZ HERRANZ sobre FF.CC.", "446182.528603, 4481053.938267", "https://www.google.com/maps?q=40.47842900207128,-3.6349300000126115"],
+  ["16.- HORTALEZA", "B7", "VE1603", "EST DE HORTALEZA - SANCHINARRO - AV. NICETO ALCALA ZAMORA sobre ffcc", "444954.85311, 4481479.58978", "https://www.google.com/maps?q=40.48218300206691,-3.6494500000144536"],
+  ["16.- HORTALEZA", "B7", "VE1604", "PUENTE DEL ENCINAR sobre M-40 (0,550)", "444711.561521, 4484295.299403", "https://www.google.com/maps?q=40.507532002074235,-3.6525660000115656"],
+  ["16.- HORTALEZA", "B7", "VE1605", "ALBERTO DE PALACIO sobre M-40", "445407.250599, 4482295.7249", "https://www.google.com/maps?q=40.489565002070066,-3.6441830000211732"],
+  ["16.- HORTALEZA", "B7", "VE1606", "FCO. PI Y MARGALL-VALDEBEBAS (Sur) sobre M-40 (Pk-3+250)", "445400.217356, 4481773.490078", "https://www.google.com/maps?q=40.48486000206719,-3.644221000015619"],
+  ["16.- HORTALEZA", "B7", "VE1607", "Calle del Camino del Encinar sobre ramal de enlace M-40", "444792.601606, 4484403.709342", "https://www.google.com/maps?q=40.50851400207221,-3.651619000017316"],
+  ["16.- HORTALEZA", "B7", "VE1608", "GREGORIO SANCHEZ HERRAEZ sobre M-11", "446195.002027, 4481067.502312", "https://www.google.com/maps?q=40.47855200207254,-3.6347840000151432"],
+  ["16.- HORTALEZA", "B7", "VE1609", "GREGORIO SANCHEZ HERRAEZ sobre M-40", "445895.456815, 4480847.317126", "https://www.google.com/maps?q=40.47654900206847,-3.6382990000125606"],
+  ["16.- HORTALEZA", "B8", "VE1610", "Calle José Mª Aguirre Gonzalo sobre la R-2", "447752.957896, 4483342.295946", "https://www.google.com/maps?q=40.499144002072576,-3.6165920000177194"],
+  ["16.- HORTALEZA", "B8", "VE1611", "CALLE LUIS MARTÍNEZ FEDUCHI SOBRE ARROYO DE VALDEBEBAS", "445271.568766, 4483604.821041", "https://www.google.com/maps?q=40.5013490020708,-3.645897000014228"],
+  ["16.- HORTALEZA", "B8", "VE1612", "Puente de la Concordia sobre M-12", "448854.993512, 4482449.735633", "https://www.google.com/maps?q=40.49117200207157,-3.6035150000152965"],
+  ["16.- HORTALEZA", "B8", "VE1613", "Calle Bet de Figueras sobre la R-2", "446871.377111, 4483254.487014", "https://www.google.com/maps?q=40.49829700207549,-3.6269880000183394"],
+  ["16.- HORTALEZA", "B8", "VE1614", "Conexión Sanchinarro a M-40 sobre vía de servicio", "444823.044243, 4482570.314198", "https://www.google.com/maps?q=40.492,-3.6511"],
+  ["16.- HORTALEZA", "B8", "VE1616", "Conexión Sanchinarro a M-40 sobre ramal R-2", "444932.068018, 4482414.100914", "https://www.google.com/maps?q=40.4906,-3.6498"],
+  ["16.- HORTALEZA", "B8", "VI1607", "CONDE MAYALDE (SANCHINARRO) M-40", "445037.366805, 4482938.055714", "https://www.google.com/maps?q=40.49532700207001,-3.6486030000191714"],
+  ["16.- HORTALEZA", "B8", "VI1610", "TOMAS REDONDO-ANTONIO LOPEZ TORRES bajo ffcc", "446641.259376, 4480432.570321", "https://www.google.com/maps?q=40.47286100207018,-3.629466000013071"],
+  ["20.-SAN BLAS-CANILLEJAS", "B7", "PE2001", "AV. ARCENTALES - PL. GRECIA sobre AV. ARCENTALES", "448378.132328, 4476196.081693", "https://www.google.com/maps?q=40.43480600206384,-3.6086330000114826"],
+  ["20.-SAN BLAS-CANILLEJAS", "B8", "PE2003", "MEQUINENZA-Pº ALAMEDA DE OSUNA sobre A-2 (Anillo Ciclista)", "448652.678559, 4477814.201141", "https://www.google.com/maps?q=40.449400002068394,-3.6055270000134385"],
+  ["20.-SAN BLAS-CANILLEJAS", "B8", "VE2001", "AVDA. 25 DE SEPTIEMBRE - PTE. FELIPE JUVARA sobre A-2", "446896.347471, 4477768.172056", "https://www.google.com/maps?q=40.44887500206513,-3.62623400001943"],
+  ["20.-SAN BLAS-CANILLEJAS", "B8", "VI2002", "CALLE DE LA PIRRA BAJO M-14", "449959.255136, 4477374.657845", "https://www.google.com/maps?q=40.4455200020664,-3.590085000012998"],
+  ["21.- BARAJAS", "B8", "VE2101", "GTA. DE LUXEMBURGO - RIBERA DEL LOIRA sobre ffcc", "447224.013627, 4479330.034933", "https://www.google.com/maps?q=40.46296600206416,-3.622500000016004"],
+  ["21.- BARAJAS", "B8", "VE2102", "BAHIA DE LA CONCHA - ENSANCHE DE BARAJAS sobre M-11", "449558.90692, 4479920.579143", "https://www.google.com/maps?q=40.46843100206603,-3.5950080000166387"],
+  ["21.- BARAJAS", "B8", "VE2104", "VALDEBEBAS-FERIAL (PABELLÓN 10) sobre M-11 (Pk 5+500)", "447499.726785, 4480331.809602", "https://www.google.com/maps?q=40.47200800207032,-3.6193310000102827"],
+  ["21.- BARAJAS", "B8", "VE2106", "CONEXIÓN EXTERIOR VALDEBEBAS sobre ramal incorporación M-12 a M-11", "448791.995818, 4480254.030754", "https://www.google.com/maps?q=40.47138800206495,-3.604081000010194"],
+  ["21.- BARAJAS", "B8", "VE2107", "CONEXIÓN VALDEBEBAS sobre M-12 lado Oeste", "448889.52435, 4480185.095606", "https://www.google.com/maps?q=40.47077300206959,-3.6029250000117408"],
+  ["21.- BARAJAS", "B8", "VE2108", "CONEXIÓN VALDEBEBAS sobre M-12 lado Este", "449044.492273, 4480122.652746", "https://www.google.com/maps?q=40.470220002064075,-3.6010920000100795"],
+  ["21.- BARAJAS", "B8", "VE2109", "CONEXIÓN EXTERIOR VALDEBEBAS sobre ramal incorporación M-11 (Oeste) a M-12", "449052.86266, 4480131.8092", "https://www.google.com/maps?q=40.47030300206691,-3.6009940000158585"],
+  ["21.- BARAJAS", "B8", "VE2110", "CONEXIÓN EXTERIOR VALDEBEBAS sobre ramal incorporación M-11 (Este) a M-12", "450394.975452, 4481887.441743", "https://www.google.com/maps?q=40.4862,-3.5853"],
+  ["21.- BARAJAS", "B8", "VE2111", "GLORIETA SINTRA VALDEBEBAS sobre M-11", "448078.026089, 4480278.820891", "https://www.google.com/maps?q=40.47156700207128,-3.6125050000161645"],
+  ["21.- BARAJAS", "B8", "VE2112", "BALCANICA sobre M-11", "450092.273414, 4479912.007866", "https://www.google.com/maps?q=40.46838600207174,-3.588716000012777"],
+  ["21.- BARAJAS", "B8", "VE2113", "GLORIETA EDIMBURGO RIBERA DEL SENA SOBRE FFCC", "446866.581286, 4479954.307399", "https://www.google.com/maps?q=40.46856700206904,-3.6267680000211286"],
+  ["21.- BARAJAS", "B8", "VE2114", "Av. Real de Merinas sobre M-14", "452178.662057, 4479833.335614", "https://www.google.com/maps?q=40.4678,-3.5641"],
+  ["21.- BARAJAS", "B8", "VI2001", "AVENIDA DE LUIS ARAGONES (Acceso Estadio Metropolitano)", "448846.05589, 4477259.628857", "https://www.google.com/maps?q=40.44441600205956,-3.603202000017126"],
+  ["21.- BARAJAS", "B8", "VI2103", "VALDEBEBAS-FERIAL (OESTE) bajo M-11 (Pk-5+600)", "447097.211171, 4480390.591607", "https://www.google.com/maps?q=40.47251200206886,-3.624084000014964"],
+  ["21.- BARAJAS", "B8", "VI2105", "VALDEBEBAS-GTA. DE SINTRA bajo M-11 (Pk-5+100)", "447638.830231, 4480330.279863", "https://www.google.com/maps?q=40.472003002064255,-3.6176900000134773"],
+  ["01.- CENTRO", "B1", "MU0101", "Muros Plaza Villa de París", "441198.813559, 4475166.871527", "https://www.google.com/maps?q=40.4250578,-3.693178"],
+  ["01.- CENTRO", "B1", "MU0102", "Muros de la Cuesta de la Vega", "439260.595541, 4474046.238638", "https://www.google.com/maps?q=40.4148234,-3.715918"],
+  ["02.- ARGANZUELA", "B1", "MU0201", "Muro de la calle Aguilón 17", "440530.800133, 4472072.442488", "https://www.google.com/maps?q=40.397134199999996,-3.7007631"],
+  ["02.- ARGANZUELA", "B1", "MU0203", "Muro calle Arganda 26", "440027.362928, 4472461.064863", "https://www.google.com/maps?q=40.400599,-3.7067316"],
+  ["02.- ARGANZUELA", "B1", "MU0204", "Muro en Calle de Melilla", "439766.082771, 4472539.663988", "https://www.google.com/maps?q=40.4012882,-3.7098178"],
+  ["02.- ARGANZUELA", "B2", "MU0205", "Muro de la Calle Ombu sobre la Calle Kentia", "442558.175459, 4471802.343037", "https://www.google.com/maps?q=40.3948433,-3.6768505000000005"],
+  ["03.- RETIRO", "B3", "MU0301", "Muros de la calle Julián Gayarre", "442006.907880, 4473156.037421", "https://www.google.com/maps?q=40.4069999,-3.6834691"],
+  ["03.- RETIRO", "B3", "MU0302", "Muro entre C/ Ángel Gavinet y Walia", "443074.862202, 4473314.707879", "https://www.google.com/maps?q=40.408502999999996,-3.6708979"],
+  ["06.- TETUAN", "B4", "MU0601", "Muro de calle Don Quijote", "440714.446494, 4477819.001211", "https://www.google.com/maps?q=40.448915,-3.699135"],
+  ["06.- TETUAN", "B4", "MU0602", "Muros Escaleras de C/Clavelinas", "440687.541057, 4479988.641717", "https://www.google.com/maps?q=40.4684581,-3.699655"],
+  ["06.- TETUAN", "B4", "MU0603", "Muros Zona Norte Pº de la Dirección", "440168.452115, 4479580.569305", "https://www.google.com/maps?q=40.4647448,-3.7057393"],
+  ["06.- TETUAN", "B4", "MU0604", "Muros Zona Sur Pº de la Dirección", "440168.452115, 4479580.569305", "https://www.google.com/maps?q=40.4647448,-3.7057393"],
+  ["06.- TETUAN", "B4", "MU0605", "Muro pilotes calle Isla Gomera", "440012.909190, 4479257.228098", "https://www.google.com/maps?q=40.4618208,-3.7075433"],
+  ["06.- TETUAN", "B4", "MU0606", "Rampa calle Isla Gomera nº 78", "440098.761654, 4479248.226088", "https://www.google.com/maps?q=40.4617459,-3.7065299"],
+  ["08.- FUENCARRAL-EL PARDO", "B5", "MU0801", "Muro Ctra. Fuencarral a Alcobendas-Calle Federico Mompou", "442469.731526, 4484953.935388", "https://www.google.com/maps?q=40.5133128,-3.6790843"],
+  ["08.- FUENCARRAL-EL PARDO", "B4", "MU0803", "Muro C/Anduiza", "441787.571715, 4481846.803958", "https://www.google.com/maps?q=40.485275,-3.6868504"],
+  ["08.- FUENCARRAL-EL PARDO", "B5", "MU0804", "Muro en Calle del Arroyo del Monte", "438386.951910, 4482340.126328", "https://www.google.com/maps?q=40.4894736,-3.7270194"],
+  ["08.- FUENCARRAL-EL PARDO", "B4", "MU0805", "Muro en Plaza de la Redondela 11", "439886.437766, 4480918.230687", "https://www.google.com/maps?q=40.4767746,-3.7091922999999998"],
+  ["08.- FUENCARRAL-EL PARDO", "B5", "MU0806", "Muro en Calle Labajos 24", "441655.697082, 4482596.500466", "https://www.google.com/maps?q=40.492019299999995,-3.6884753"],
+  ["09.- MONCLOA-ARAVACA", "B6", "MU0901", "Aparcamiento de Bancadas", "437062.591760, 4474071.316453", "https://www.google.com/maps?q=40.414885999999996,-3.7418256999999997"],
+  ["09.- MONCLOA-ARAVACA", "B6", "MU0902", "Muro Anillo Verde Ciclista prolongación PE0909 junto al río Manzanares", "437062.591760, 4474071.316453", "https://www.google.com/maps?q=40.414885999999996,-3.7418256999999997"],
+  ["09.- MONCLOA-ARAVACA", "B5", "MU0903", "Muros Rampa C/Aguilar de Campoo", "439063.398772, 4479463.690756", "https://www.google.com/maps?q=40.4636116,-3.7187617"],
+  ["09.- MONCLOA-ARAVACA", "B6", "MU0906", "Muro en calle Comandante Fortea", "437933.933421, 4475379.401354", "https://www.google.com/maps?q=40.4267352,-3.7316839"],
+  ["09.- MONCLOA-ARAVACA", "B5", "MU0907", "Muro en Calle de Sánchez Preciado - Alesanco", "439826.954020, 4479370.416578", "https://www.google.com/maps?q=40.462827,-3.7097472000000002"],
+  ["09.- MONCLOA-ARAVACA", "B5", "MU0908", "Muro en Calle de Armenteros, 15", "439568.107407, 4479437.641338", "https://www.google.com/maps?q=40.4634138,-3.7128064999999997"],
+  ["09.- MONCLOA-ARAVACA", "B5", "MU0910", "Muro en calle Valderrodrigo 45", "439056.785033, 4480174.728363", "https://www.google.com/maps?q=40.4700164,-3.718908"],
+  ["09.- MONCLOA-ARAVACA", "B5", "MU0911", "Muro en calle Antonio Machado 55", "439025.530669, 4480070.058193", "https://www.google.com/maps?q=40.469071199999995,-3.7192665999999996"],
+  ["09.- MONCLOA-ARAVACA", "B5", "MU0912", "Muro en calle Valderrey 35", "439060.410758, 4479893.293573", "https://www.google.com/maps?q=40.467481400000004,-3.7188382000000004"],
+  ["09.- MONCLOA-ARAVACA", "B5", "MU0913", "Muro en calle de Antonio Machado 106", "439022.047249, 4479615.475637", "https://www.google.com/maps?q=40.4649759,-3.719264"],
+  ["09.- MONCLOA-ARAVACA", "B6", "MU0914", "Muro en calle del Valle de Mena con calle de Valderrodrigo", "439371.003206, 4480186.817831", "https://www.google.com/maps?q=40.4701483,-3.7152027999999993"],
+  ["09.- MONCLOA-ARAVACA", "B5", "MU0915", "Muros Rampa Dr Federico Rubio y Gali 90", "439532.947016, 4478574.851714", "https://www.google.com/maps?q=40.4556389,-3.713139"],
+  ["09.- MONCLOA-ARAVACA", "B5", "MU0916", "Muro de Calle Valderromán, 22-B", "438812.942910, 4480270.808714", "https://www.google.com/maps?q=40.470864,-3.7217934999999995"],
+  ["15.- CIUDAD LINEAL", "B7", "MU1502", "Muro en Calle de la Virgen de La Paz nº 15", "444043.437201, 4476150.595989", "https://www.google.com/maps?q=40.4341159,-3.6597329"],
+  ["15.- CIUDAD LINEAL", "B7", "MU1503", "Muro en Calle de Santo Domingo Savio", "446251.178856, 4475766.650225", "https://www.google.com/maps?q=40.4308027,-3.6336725"],
+  ["15.- CIUDAD LINEAL", "B7", "MU1504", "Muro en Calle de Juan Boscán 79", "445902.175366, 4475453.606724", "https://www.google.com/maps?q=40.42796,-3.6377601999999998"],
+  ["15.- CIUDAD LINEAL", "B7", "MU1505", "Muro en calle Paredes de Nava 2-4", "446801.074152, 4474644.760714", "https://www.google.com/maps?q=40.4207314,-3.6270960000000003"],
+  ["15.- CIUDAD LINEAL", "B7", "MU1506", "Muro en Calle de Gonzalo de Berceo, 33", "445579.260255, 4475439.282784", "https://www.google.com/maps?q=40.4278099,-3.6415656000000003"],
+  ["16.- HORTALEZA", "B7", "MU1603", "Muro Barichara", "446009.734002, 4480758.130344", "https://www.google.com/maps?q=40.475753,-3.6369433"],
+  ["16.- HORTALEZA", "B7", "MU1604", "Muro en Calle de Mota del Cuervo, 35", "446648.967190, 4479643.262762", "https://www.google.com/maps?q=40.465751,-3.6293087"],
+  ["20.-SAN BLAS-CANILLEJAS", "B7", "MU2001", "Muro calle Pescadores", "447697.175243, 4475848.629706", "https://www.google.com/maps?q=40.4316334,-3.6166326"],
+  ["20.-SAN BLAS-CANILLEJAS", "B7", "MU2002", "Muro de calle Peleteros", "447703.006525, 4475620.673656", "https://www.google.com/maps?q=40.4295802,-3.6165451"],
+  ["20.-SAN BLAS-CANILLEJAS", "B7", "MU2003", "Muro de calle Repujado", "447679.502849, 4475637.965780", "https://www.google.com/maps?q=40.4297345,-3.6168236"],
+  ["20.-SAN BLAS-CANILLEJAS", "B7", "MU2004", "Muro en calle Marineros", "447676.199096, 4475790.465241", "https://www.google.com/maps?q=40.4311081,-3.6168751"],
+  ["20.-SAN BLAS-CANILLEJAS", "B7", "MU2005", "Muro de los Cereales", "447633.322652, 4475964.432057", "https://www.google.com/maps?q=40.4326726,-3.6173949"],
+  ["20.-SAN BLAS-CANILLEJAS", "B7", "MU2006", "Muro calle Amposta 77", "447716.540242, 4474724.969958", "https://www.google.com/maps?q=40.421512,-3.6163119"],
+  ["20.-SAN BLAS-CANILLEJAS", "B7", "MU2007", "Muro de Castillo de Oropesa", "446696.478413, 4475372.675730", "https://www.google.com/maps?q=40.4272822,-3.6283899"],
+  ["20.-SAN BLAS-CANILLEJAS", "B7", "MU2008", "Muro calle Iliada", "448350.765956, 4476279.279511", "https://www.google.com/maps?q=40.4355538,-3.6089624"],
+  ["20.-SAN BLAS-CANILLEJAS", "B7", "MU2009", "Muro Arcos de Jalón 58", "447683.899155, 4474796.096451", "https://www.google.com/maps?q=40.422150699999996,-3.6167024999999993"],
+  ["20.-SAN BLAS-CANILLEJAS", "B7", "MU2010", "Muro en calle del Pan", "447592.918621, 4475955.567729", "https://www.google.com/maps?q=40.4325902,-3.6178705"],
+  ["20.-SAN BLAS-CANILLEJAS", "B7", "MU2011", "Muro calle Longares 11", "448358.148275, 4475739.434327", "https://www.google.com/maps?q=40.430690999999996,-3.6088315"],
+  ["20.-SAN BLAS-CANILLEJAS", "B7", "MU2012", "Muro en Av. de Hellín", "447765.978451, 4475727.209894", "https://www.google.com/maps?q=40.4305439,-3.6158115"],
+  ["20.-SAN BLAS-CANILLEJAS", "B7", "MU2013", "Muro en calle Inventores", "447493.599799, 4475996.879785", "https://www.google.com/maps?q=40.4329561,-3.6190448"],
+  ["20.-SAN BLAS-CANILLEJAS", "B7", "MU2014", "Muro en calle Guarnicioneros", "447673.521464, 4475987.650980", "https://www.google.com/maps?q=40.4328843,-3.6169229"],
+  ["20.-SAN BLAS-CANILLEJAS", "B7", "MU2015", "Muro en Calle de las Redes", "447656.108776, 4475655.146209", "https://www.google.com/maps?q=40.4298878,-3.6171008"],
+  ["20.-SAN BLAS-CANILLEJAS", "B7", "MU2016", "Muro de Cordobanes", "447573.411738, 4475942.594498", "https://www.google.com/maps?q=40.4324721,-3.6180994"],
+  ["20.-SAN BLAS-CANILLEJAS", "B7", "MU2017", "Muro de Cordobanes,12", "447569.670733, 4475901.337911", "https://www.google.com/maps?q=40.4321002,-3.6181400999999997"],
+  ["20.-SAN BLAS-CANILLEJAS", "B7", "MU2018", "Muro en calle de Alconera, 9", "447551.255372, 4475823.774387", "https://www.google.com/maps?q=40.4314003,-3.6183508"],
+  ["20.-SAN BLAS-CANILLEJAS", "B7", "MU2019", "Muro calle de Alconera", "447599.454274, 4475652.922443", "https://www.google.com/maps?q=40.4298642,-3.6177685"],
+  ["20.-SAN BLAS-CANILLEJAS", "B7", "MU2020", "Muro en Calle de los Decoradores", "447500.864404, 4475905.405138", "https://www.google.com/maps?q=40.4321325,-3.6189516"],
+  ["20.-SAN BLAS-CANILLEJAS", "B7", "MU2021", "Muro en calle de los Deportistas", "447475.405216, 4475723.391030", "https://www.google.com/maps?q=40.4304912,-3.6192367"],
+  ["20.-SAN BLAS-CANILLEJAS", "B7", "MU2022", "Muro en calle Taquigrafía", "447475.475631, 4475872.603471", "https://www.google.com/maps?q=40.4318354,-3.6192482"],
+  ["20.-SAN BLAS-CANILLEJAS", "B7", "MU2023", "Muro en calle de Albaida", "447723.705321, 4476037.852360", "https://www.google.com/maps?q=40.4333397,-3.6163354"],
+  ["20.-SAN BLAS-CANILLEJAS", "B7", "MU2024", "Muro en calle Feria", "447448.455902, 4475596.379355", "https://www.google.com/maps?q=40.4293453,-3.6195439"],
+  ["20.-SAN BLAS-CANILLEJAS", "B7", "MU2025", "Muro en calle de Alconera, 42", "447701.238913, 4475911.907476", "https://www.google.com/maps?q=40.432203699999995,-3.6165898999999997"],
+  ["20.-SAN BLAS-CANILLEJAS", "B7", "MU2026", "Muro en calle de los Labradores", "447656.024063, 4475766.884384", "https://www.google.com/maps?q=40.4308944,-3.617111"]
+];
+
+const CDN = {
+  leafletCss:"https://unpkg.com/leaflet@1.9.4/dist/leaflet.css",
+  leafletJs :"https://unpkg.com/leaflet@1.9.4/dist/leaflet.js",
+  sheetJs   :"https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"
+};
+const OSRM_BASES = [
+  "https://router.project-osrm.org/table/v1/driving/",
+  "https://routing.openstreetmap.de/routed-car/table/v1/driving/"
+];
+const EXACT_MAX = 12;                 // óptimo exacto hasta 12 paradas
+const IBERIA = {latMin:35,latMax:44,lonMin:-10,lonMax:5};
+
+/* ========================= Geodesia ====================================== */
+function haversine(a,b){
+  const R=6371,rad=Math.PI/180;
+  const la1=a.lat*rad,lo1=a.lon*rad,la2=b.lat*rad,lo2=b.lon*rad;
+  const dla=la2-la1,dlo=lo2-lo1;
+  const h=Math.sin(dla/2)**2+Math.cos(la1)*Math.cos(la2)*Math.sin(dlo/2)**2;
+  return 2*R*Math.asin(Math.min(1,Math.sqrt(h)));
+}
+function utm30ToLatLon(E,N){
+  const a=6378137.0, f=1/298.257222101, e2=f*(2-f), k0=0.9996, FE=500000.0, lon0=-3.0*Math.PI/180;
+  const x=E-FE, y=N, M=y/k0;
+  const mu=M/(a*(1-e2/4-3*e2**2/64-5*e2**3/256));
+  const e1=(1-Math.sqrt(1-e2))/(1+Math.sqrt(1-e2));
+  const phi1=mu+(3*e1/2-27*e1**3/32)*Math.sin(2*mu)+(21*e1**2/16-55*e1**4/32)*Math.sin(4*mu)
+            +(151*e1**3/96)*Math.sin(6*mu)+(1097*e1**4/512)*Math.sin(8*mu);
+  const ep2=e2/(1-e2), C1=ep2*Math.cos(phi1)**2, T1=Math.tan(phi1)**2;
+  const N1=a/Math.sqrt(1-e2*Math.sin(phi1)**2);
+  const R1=a*(1-e2)/Math.pow(1-e2*Math.sin(phi1)**2,1.5);
+  const D=x/(N1*k0);
+  const lat=phi1-(N1*Math.tan(phi1)/R1)*(D*D/2-(5+3*T1+10*C1-4*C1*C1-9*ep2)*D**4/24
+        +(61+90*T1+298*C1+45*T1*T1-252*ep2-3*C1*C1)*D**6/720);
+  const lon=lon0+(D-(1+2*T1+C1)*D**3/6+(5-2*C1+28*T1-3*C1*C1+8*ep2+24*T1*T1)*D**5/120)/Math.cos(phi1);
+  return {lat:lat*180/Math.PI, lon:lon*180/Math.PI};
+}
+
+/* ========================= Ingesta de datos ============================== */
+function norm(s){return String(s==null?"":s).trim().toLowerCase()
+  .normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/\s+/g," ");}
+function findCol(headers,cands){
+  for(const c of cands){const i=headers.indexOf(c);if(i>=0)return i;}
+  for(let i=0;i<headers.length;i++)for(const c of cands)if(headers[i].includes(c))return i;
+  return -1;
+}
+function toNum(v){
+  if(v==null)return NaN; let s=String(v).trim();
+  if(/^-?\d+,\d+$/.test(s))s=s.replace(",",".");
+  return parseFloat(s);
+}
+function parseLink(v){
+  const m=String(v||"").match(/q=(-?\d+(?:\.\d+)?)[,\s]+(-?\d+(?:\.\d+)?)/);
+  if(!m)return null;
+  const lat=parseFloat(m[1]),lon=parseFloat(m[2]);
+  return isFinite(lat)&&isFinite(lon)?{lat,lon}:null;
+}
+function parseUTM(v){
+  const nums=String(v||"").match(/-?\d+(?:[.,]\d+)?/g);
+  if(!nums||nums.length<2)return null;
+  const E=parseFloat(nums[0].replace(",",".")), N=parseFloat(nums[1].replace(",","."));
+  if(!(E>100000&&E<900000&&N>1000000))return null;
+  return utm30ToLatLon(E,N);
+}
+function inIberia(p){return p.lat>=IBERIA.latMin&&p.lat<=IBERIA.latMax&&p.lon>=IBERIA.lonMin&&p.lon<=IBERIA.lonMax;}
+
+function ingest(rows,sourceLabel){
+  if(!rows||rows.length<2)return {error:"El fichero no contiene datos suficientes (falta cabecera o filas)."};
+  const headers=rows[0].map(norm);
+  const iCod=findCol(headers,["codigo","cod","id","referencia","ref"]);
+  const iNom=findCol(headers,["nombre","denominacion","descripcion","estructura"]);
+  const iDis=findCol(headers,["distrito","district","zona"]);
+  const iBlo=findCol(headers,["bloque"]);
+  const iLnk=findCol(headers,["enlace google maps","enlace","google maps","maps","url","link"]);
+  const iUtm=findCol(headers,["coordenadas utm","utm","coordenadas"]);
+  const iLat=findCol(headers,["latitud","latitude","lat"]);
+  const iLon=findCol(headers,["longitud","longitude","lon","lng"]);
+  const items=[], warnings=[];
+  for(let r=1;r<rows.length;r++){
+    const row=rows[r]; if(!row||row.every(c=>String(c==null?"":c).trim()===""))continue;
+    const get=i=>i>=0?String(row[i]==null?"":row[i]).trim():"";
+    const code=get(iCod)||("Fila "+(r+1)); const name=get(iNom)||code; const distrito=get(iDis)||"Sin distrito";
+    let pos=null, src="";
+    if(iLnk>=0){pos=parseLink(get(iLnk)); if(pos)src="enlace";}
+    if(!pos && iLat>=0 && iLon>=0){
+      const la=toNum(get(iLat)),lo=toNum(get(iLon));
+      if(isFinite(la)&&isFinite(lo)&&Math.abs(la)<=90&&Math.abs(lo)<=180){pos={lat:la,lon:lo};src="lat/lon";}
+    }
+    if(!pos && iUtm>=0){pos=parseUTM(get(iUtm)); if(pos)src="UTM 30N";}
+    if(!pos){warnings.push(code+": sin coordenadas válidas");continue;}
+    if(!inIberia(pos))warnings.push(code+": coordenadas fuera de la Península ("+pos.lat.toFixed(4)+", "+pos.lon.toFixed(4)+")"+(src==="UTM 30N"?" — ¿huso UTM distinto de 30N?":""));
+    items.push({code,name,distrito,bloque:get(iBlo),lat:pos.lat,lon:pos.lon,src});
+  }
+  if(!items.length)return {error:"No se ha podido leer ninguna estructura con coordenadas válidas.",warnings};
+  return {items,warnings,source:sourceLabel};
+}
+function parseCSV(text){
+  text=text.replace(/^\uFEFF/,"");
+  const first=(text.split(/\r?\n/)[0]||"");
+  const cS=(first.match(/;/g)||[]).length, cC=(first.match(/,/g)||[]).length, cT=(first.match(/\t/g)||[]).length;
+  const delim = cT>cS&&cT>cC?"\t":(cS>=cC?";":",");
+  const rows=[];let row=[],cur="",q=false;
+  for(let i=0;i<text.length;i++){
+    const ch=text[i];
+    if(q){ if(ch==='"'){ if(text[i+1]==='"'){cur+='"';i++;} else q=false; } else cur+=ch; }
+    else{
+      if(ch==='"')q=true;
+      else if(ch===delim){row.push(cur);cur="";}
+      else if(ch==="\n"){row.push(cur);rows.push(row);row=[];cur="";}
+      else if(ch==="\r"){}
+      else cur+=ch;
+    }
+  }
+  if(cur!==""||row.length){row.push(cur);rows.push(row);}
+  return rows.filter(r=>r.length&&!(r.length===1&&r[0].trim()===""));
+}
+
+/* ========================= Solver TSP (matriz asimétrica) ================ */
+function haversineMatrix(pts){return pts.map(a=>pts.map(b=>haversine(a,b)));}
+function hkFrom(D,source){
+  const n=D.length,FULL=1<<n;
+  const dp=Array.from({length:FULL},()=>new Float64Array(n).fill(Infinity));
+  const par=Array.from({length:FULL},()=>new Int16Array(n).fill(-1));
+  dp[1<<source][source]=0;
+  for(let mask=0;mask<FULL;mask++){
+    if(!(mask&(1<<source)))continue;
+    const dpm=dp[mask];
+    for(let j=0;j<n;j++){
+      const base=dpm[j]; if(base===Infinity||!(mask&(1<<j)))continue;
+      const Dj=D[j];
+      for(let k=0;k<n;k++){
+        if(mask&(1<<k))continue;
+        const nm=mask|(1<<k),nd=base+Dj[k];
+        if(nd<dp[nm][k]){dp[nm][k]=nd;par[nm][k]=j;}
+      }
+    }
+  }
+  return {dp,par,FULL};
+}
+function rebuild(par,mask,end){const p=[];let m=mask,j=end;while(j!==-1){p.push(j);const pj=par[m][j];m^=(1<<j);j=pj;}return p.reverse();}
+function exactClosed(D,anchor){
+  const {dp,par,FULL}=hkFrom(D,anchor),full=FULL-1;let best=Infinity,bj=-1;
+  for(let j=0;j<D.length;j++){const c=dp[full][j]+D[j][anchor];if(c<best){best=c;bj=j;}}
+  const order=rebuild(par,full,bj);order.push(anchor);return {order,cost:best};
+}
+function exactOpenFixed(D,s){
+  const {dp,par,FULL}=hkFrom(D,s),full=FULL-1;let best=Infinity,bj=-1;
+  for(let j=0;j<D.length;j++)if(dp[full][j]<best){best=dp[full][j];bj=j;}
+  return {order:rebuild(par,full,bj),cost:best};
+}
+function exactOpenFree(D){
+  const n=D.length,dum=n,m=n+1;
+  const E=Array.from({length:m},(_,i)=>Array.from({length:m},(_,j)=>(i===dum||j===dum)?0:D[i][j]));
+  const {order}=exactClosed(E,dum);
+  const inner=order.filter(x=>x!==dum);
+  let cost=0;for(let i=0;i<inner.length-1;i++)cost+=D[inner[i]][inner[i+1]];
+  return {order:inner,cost};
+}
+function pathCost(D,o,closed){let c=0;for(let i=0;i<o.length-1;i++)c+=D[o[i]][o[i+1]];if(closed&&o.length>1)c+=D[o[o.length-1]][o[0]];return c;}
+function nn(D,start){
+  const n=D.length,seen=new Array(n).fill(false),o=[start];seen[start]=true;
+  for(let s=1;s<n;s++){let last=o[o.length-1],bi=-1,bd=Infinity;
+    for(let j=0;j<n;j++)if(!seen[j]&&D[last][j]<bd){bd=D[last][j];bi=j;}
+    o.push(bi);seen[bi]=true;}
+  return o;
+}
+function twoOpt(D,o,closed,fixStart){
+  const n=o.length;let imp=true,g=0;
+  while(imp&&g++<80){imp=false;
+    for(let i=fixStart?1:0;i<n-1;i++)for(let k=i+1;k<n-(closed?0:1);k++){
+      if(!closed && (k+1)>=n) continue;
+      const before=D[o[i===0?n-1:i-1]][o[i]]+D[o[k]][o[(k+1)%n]];
+      const after =D[o[i===0?n-1:i-1]][o[k]]+D[o[i]][o[(k+1)%n]];
+      if(after+1e-9<before){let lo=i,hi=k;while(lo<hi){const t=o[lo];o[lo]=o[hi];o[hi]=t;lo++;hi--;}imp=true;}
+    }
+  }
+  return o;
+}
+function heuristic(D,closed,startIdx){
+  const n=D.length;let best=null,bc=Infinity;
+  const starts=startIdx!=null?[startIdx]:Array.from({length:n},(_,i)=>i);
+  for(const s of starts){
+    let o=twoOpt(D,nn(D,s),closed,startIdx!=null);
+    const c=pathCost(D,o,closed);
+    if(c<bc){bc=c;best=o;}
+  }
+  if(closed)best=best.concat([best[0]]);
+  return {order:best,cost:bc};
+}
+function solveMatrix(D,opt){
+  const closed=opt.closed, startIdx=opt.startIdx;
+  const n=D.length;
+  if(n===1)return {order:[0],cost:0,exact:true};
+  const exact=n<=EXACT_MAX;
+  let res;
+  if(exact){
+    if(closed)res=exactClosed(D,startIdx!=null?startIdx:0);
+    else res=(startIdx!=null)?exactOpenFixed(D,startIdx):exactOpenFree(D);
+  }else res=heuristic(D,closed,startIdx);
+  res.exact=exact;
+  return res;
+}
+
+/* ========================= OSRM (tiempos por carretera) ================== */
+function osrmMatrixFromJson(json,n){
+  if(!json||json.code!=="Ok"||!Array.isArray(json.durations))return {ok:false,reason:"código "+(json&&json.code)};
+  const dur=json.durations, dist=Array.isArray(json.distances)?json.distances:null;
+  if(dur.length!==n)return {ok:false,reason:"dimensión inesperada"};
+  let hasNull=false;
+  for(let i=0;i<n;i++){
+    if(!Array.isArray(dur[i])||dur[i].length!==n)return {ok:false,reason:"matriz incompleta"};
+    for(let j=0;j<n;j++)if(i!==j&&(dur[i][j]===null||dur[i][j]===undefined))hasNull=true;
+  }
+  return {ok:true,hasNull,durations:dur,distances:dist};
+}
+async function fetchTable(base,coords){
+  const url=base+coords+"?annotations=duration,distance";
+  const ctl=new AbortController(); const t=setTimeout(()=>ctl.abort(),12000);
+  try{
+    const r=await fetch(url,{signal:ctl.signal,mode:"cors"});
+    if(!r.ok)throw new Error("HTTP "+r.status);
+    return await r.json();
+  }finally{clearTimeout(t);}
+}
+async function osrmTable(pts){
+  const coords=pts.map(p=>p.lon+","+p.lat).join(";");
+  let lastErr=null;
+  for(const b of OSRM_BASES){
+    try{
+      const json=await fetchTable(b,coords);
+      const parsed=osrmMatrixFromJson(json,pts.length);
+      if(parsed.ok)return parsed;
+      lastErr=new Error(parsed.reason||"respuesta no válida");
+    }catch(e){lastErr=e;}
+  }
+  throw lastErr||new Error("sin respuesta del servicio");
+}
+
+/* ========================= Formato ======================================= */
+function fmtDur(s){s=Math.round(s);const h=Math.floor(s/3600),m=Math.round((s%3600)/60);
+  if(h>0)return h+" h "+(m<10?"0"+m:m)+" min"; return m+" min";}
+function fmtKm(m){return (m/1000).toFixed(2).replace(".",",")+" km";}
+function fmtKmVal(km){return km.toFixed(2).replace(".",",");}
+
+/* ===== Lector XLSX integrado (sin conexión, sin CDN) ===================== */
+function _u16(a,o){return a[o]|(a[o+1]<<8);}
+function _u32(a,o){return (a[o]|(a[o+1]<<8)|(a[o+2]<<16)|(a[o+3]<<24))>>>0;}
+async function inflateRaw(u8){
+  const ds=new DecompressionStream("deflate-raw");
+  const ab=await new Response(new Blob([u8]).stream().pipeThrough(ds)).arrayBuffer();
+  return new Uint8Array(ab);
+}
+async function unzip(u8){
+  let eo=-1;
+  for(let i=u8.length-22;i>=0;i--){if(_u32(u8,i)===0x06054b50){eo=i;break;}}
+  if(eo<0)throw new Error("ZIP no válido");
+  const count=_u16(u8,eo+10); let cd=_u32(u8,eo+16); const files={};
+  for(let n=0;n<count;n++){
+    if(_u32(u8,cd)!==0x02014b50)throw new Error("ZIP: directorio dañado");
+    const method=_u16(u8,cd+10), compSize=_u32(u8,cd+20);
+    const nameLen=_u16(u8,cd+28), extraLen=_u16(u8,cd+30), commLen=_u16(u8,cd+32), lho=_u32(u8,cd+42);
+    const name=new TextDecoder().decode(u8.subarray(cd+46,cd+46+nameLen));
+    if(_u32(u8,lho)!==0x04034b50)throw new Error("ZIP: cabecera local dañada");
+    const dataStart=lho+30+_u16(u8,lho+26)+_u16(u8,lho+28);
+    const comp=u8.subarray(dataStart,dataStart+compSize);
+    let data;
+    if(method===0)data=comp.slice();
+    else if(method===8)data=await inflateRaw(comp);
+    else throw new Error("ZIP: compresión no soportada ("+method+")");
+    files[name]=data; cd+=46+nameLen+extraLen+commLen;
+  }
+  return files;
+}
+function _xml(u8){return new DOMParser().parseFromString(new TextDecoder().decode(u8),"application/xml");}
+function _colIdx(ref){let s=ref.replace(/[0-9]+$/,""),n=0;for(let i=0;i<s.length;i++)n=n*26+(s.charCodeAt(i)-64);return n-1;}
+function parseSharedStrings(u8){
+  if(!u8)return [];
+  const doc=_xml(u8), sis=doc.getElementsByTagName("si"), out=[];
+  for(let i=0;i<sis.length;i++){const ts=sis[i].getElementsByTagName("t");let s="";for(let j=0;j<ts.length;j++)s+=ts[j].textContent;out.push(s);}
+  return out;
+}
+function parseSheet(u8,shared){
+  const doc=_xml(u8), rowsEl=doc.getElementsByTagName("row"), out=[];
+  for(let i=0;i<rowsEl.length;i++){
+    const cells=rowsEl[i].getElementsByTagName("c"); const row=[]; let maxc=-1;
+    for(let j=0;j<cells.length;j++){
+      const c=cells[j], ref=c.getAttribute("r")||"", ci=ref?_colIdx(ref):j, t=c.getAttribute("t");
+      let val="";
+      if(t==="s"){const v=c.getElementsByTagName("v")[0]; if(v)val=shared[parseInt(v.textContent,10)]||"";}
+      else if(t==="inlineStr"){const ts=c.getElementsByTagName("t");let s="";for(let k=0;k<ts.length;k++)s+=ts[k].textContent;val=s;}
+      else{const v=c.getElementsByTagName("v")[0]; val=v?v.textContent:"";}
+      row[ci]=val; if(ci>maxc)maxc=ci;
+    }
+    for(let k=0;k<=maxc;k++)if(row[k]===undefined)row[k]="";
+    out.push(row);
+  }
+  return out;
+}
+function firstSheetName(files){
+  try{
+    const wb=_xml(files["xl/workbook.xml"]), sh=wb.getElementsByTagName("sheet")[0];
+    const rid=sh.getAttribute("r:id")||sh.getAttributeNS("http://schemas.openxmlformats.org/officeDocument/2006/relationships","id");
+    const rels=_xml(files["xl/_rels/workbook.xml.rels"]), rs=rels.getElementsByTagName("Relationship");
+    for(let i=0;i<rs.length;i++)if(rs[i].getAttribute("Id")===rid){
+      let tgt=rs[i].getAttribute("Target").replace(/^\//,""); if(!/^xl\//.test(tgt))tgt="xl/"+tgt;
+      if(files[tgt])return tgt;
+    }
+  }catch(e){}
+  if(files["xl/worksheets/sheet1.xml"])return "xl/worksheets/sheet1.xml";
+  const k=Object.keys(files).find(n=>/^xl\/worksheets\/sheet\d+\.xml$/.test(n));
+  if(k)return k; throw new Error("No se encontró ninguna hoja de cálculo");
+}
+async function readXlsx(arrayBuffer){
+  const files=await unzip(new Uint8Array(arrayBuffer));
+  const shared=files["xl/sharedStrings.xml"]?parseSharedStrings(files["xl/sharedStrings.xml"]):[];
+  return parseSheet(files[firstSheetName(files)],shared);
+}
+
+/* ========================= Estado y UI =================================== */
+const $=s=>document.querySelector(s);
+let INV=[], SELECTED=new Set(), calculating=false, lastOrdered=null, lastRoute=null;
+let pickedPoint=null, picking=false, startDefaulted=false, pickMarker=null, mapClickBound=false;
+let acMatches=[], acActive=-1;
+const INV_KEY="ruta_inv_v1";
+function saveInventory(label){try{localStorage.setItem(INV_KEY,JSON.stringify({label:label,ts:Date.now(),items:INV}));return true;}catch(e){return false;}}
+function loadSaved(){try{const s=localStorage.getItem(INV_KEY);if(!s)return null;const o=JSON.parse(s);if(o&&Array.isArray(o.items)&&o.items.length)return o;}catch(e){}return null;}
+function markPersistedSrc(){const el=$("#srcInfo");if(el&&!/guardado en este equipo/.test(el.innerHTML))el.innerHTML+=' · <span style="color:var(--road)">guardado en este equipo</span>';}
+const ROUTES_KEY="ruta_rutas_v1";
+function loadRoutes(){try{const s=localStorage.getItem(ROUTES_KEY);if(!s)return[];const a=JSON.parse(s);return Array.isArray(a)?a:[];}catch(e){return[];}}
+function saveRoutesArr(a){try{localStorage.setItem(ROUTES_KEY,JSON.stringify(a));return true;}catch(e){return false;}}
+function refreshSavedRoutes(){
+  const sel=$("#savedRoutes"); if(!sel)return; const a=loadRoutes(); const prev=sel.value;
+  sel.innerHTML='<option value="">— selecciona una ruta —</option>'+a.map((r,i)=>'<option value="'+i+'">'+escapeHtml(r.name)+' ('+r.codes.length+')</option>').join("");
+  if([...sel.options].some(o=>o.value===prev))sel.value=prev;
+}
+
+function toast(msg){const t=$("#toast");t.textContent=msg;t.classList.add("show");clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("show"),1800);}
+function showMsg(el,type,html){el.className="msg show "+type;el.innerHTML=html;}
+function hideMsg(el){el.className="msg";}
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+function escapeAttr(s){return escapeHtml(s);}
+
+function loadInventory(result,label){
+  if(result.error){showMsg($("#selMsg"),"err",result.error+(result.warnings&&result.warnings.length?"<ul><li>"+result.warnings.slice(0,8).join("</li><li>")+"</li></ul>":""));return false;}
+  INV=result.items; SELECTED=new Set();
+  $("#srcInfo").innerHTML="Inventario: <b>"+escapeHtml(label)+"</b> · "+INV.length+" estructuras";
+  $("#invCount").textContent=INV.length+" en total";
+  renderList(); renderStartOptions(); updateSelCount(); clearResults();
+  if(result.warnings&&result.warnings.length)
+    showMsg($("#selMsg"),"warn","Se descartaron o revisar "+result.warnings.length+" fila(s):<ul><li>"+result.warnings.slice(0,8).join("</li><li>")+"</li></ul>"+(result.warnings.length>8?"…":""));
+  else hideMsg($("#selMsg"));
+  return true;
+}
+function renderList(){
+  const q=norm($("#filter").value);
+  const groups={};
+  INV.forEach((it,idx)=>{ if(q){const hay=norm(it.code+" "+it.name+" "+it.distrito);if(!hay.includes(q))return;} (groups[it.distrito]=groups[it.distrito]||[]).push(idx); });
+  const keys=Object.keys(groups).sort((a,b)=>a.localeCompare(b,'es'));
+  const box=$("#list");box.innerHTML="";
+  if(!keys.length){box.innerHTML='<div class="placeholder">Sin coincidencias.</div>';return;}
+  for(const k of keys){
+    const g=document.createElement("div");g.className="group";
+    g.innerHTML='<div class="gh">'+escapeHtml(k)+' · '+groups[k].length+'</div>';
+    for(const idx of groups[k]){
+      const it=INV[idx],on=SELECTED.has(it.code);
+      const row=document.createElement("label");row.className="row"+(on?" on":"");
+      row.innerHTML='<input type="checkbox" '+(on?"checked":"")+'>'
+        +'<span class="cod">'+escapeHtml(it.code)+'</span>'
+        +'<span><span class="nm">'+escapeHtml(it.name)+'</span><br><span class="meta">'
+        +it.lat.toFixed(5)+', '+it.lon.toFixed(5)+(it.src&&it.src!=="enlace"?" · "+it.src:"")+'</span></span>';
+      row.querySelector("input").addEventListener("change",e=>{
+        if(e.target.checked)SELECTED.add(it.code);else SELECTED.delete(it.code);
+        row.classList.toggle("on",e.target.checked); renderStartOptions(); updateSelCount();
+      });
+      g.appendChild(row);
+    }
+    box.appendChild(g);
+  }
+}
+function renderStartOptions(){
+  const sel=$("#startSel"),prev=sel.value;
+  const chosen=INV.filter(it=>SELECTED.has(it.code));
+  sel.innerHTML='<option value="__gps__">Mi ubicación (GPS)</option>'
+    +'<option value="__map__">Elegir en el mapa</option>'
+    +'<option value="">Óptimo (elige el mejor)</option>'
+    +chosen.map(it=>'<option value="'+escapeAttr(it.code)+'">'+escapeHtml(it.code+' — '+it.name.slice(0,40))+'</option>').join("");
+  if(!startDefaulted){ sel.value=(window.isSecureContext?"__gps__":""); startDefaulted=true; }
+  else if([...sel.options].some(o=>o.value===prev)) sel.value=prev;
+  else sel.value=(window.isSecureContext?"__gps__":"");
+  updateStartNote();
+}
+function updateSelCount(){$("#selCount").innerHTML="<b>"+SELECTED.size+"</b> seleccionadas";}
+function clearResults(){
+  lastRoute=null;
+  $("#resContent").classList.add("hidden");$("#resEmpty").classList.remove("hidden");
+  $("#resCount").textContent="";$("#mapPlaceholder").style.display="flex";
+  $("#map").innerHTML="";$("#schematic").style.display="none";$("#schematic").innerHTML="";$("#maptag").textContent="";
+  hideMsg($("#resMsg"));
+}
+function setCalcBusy(b,statusText){
+  const btn=$("#calc");btn.disabled=b;btn.textContent=b?"Calculando…":"Calcular ruta óptima";
+  const bm=$("#calcMobile");if(bm){bm.disabled=b;bm.textContent=b?"Calculando…":"Calcular ruta óptima";}
+  $("#calcStatus").textContent=b?(statusText||""):"";
+}
+
+function updateStartNote(){
+  const el=$("#startNote"); if(!el)return; const v=$("#startSel").value;
+  if(v==="__gps__") el.innerHTML='La ruta partirá de tu <b>ubicación (GPS)</b>. Requiere permiso y conexión segura (https).';
+  else if(v==="__map__") el.innerHTML = pickedPoint ? ('Inicio elegido: <span style="font-family:var(--mono)">'+pickedPoint.lat.toFixed(5)+', '+pickedPoint.lon.toFixed(5)+'</span> (toca de nuevo para cambiarlo).') : 'Toca en el mapa para fijar tu <b>punto de inicio</b>.';
+  else el.textContent="";
+}
+function getGPS(){
+  return new Promise((res,rej)=>{
+    if(!navigator.geolocation){rej(new Error("el dispositivo no ofrece geolocalización"));return;}
+    navigator.geolocation.getCurrentPosition(
+      p=>res({kind:"gps",label:"Mi ubicación (GPS)",lat:p.coords.latitude,lon:p.coords.longitude}),
+      e=>rej(new Error(e&&e.code===1?"permiso de ubicación denegado":"no se pudo obtener la ubicación")),
+      {enableHighAccuracy:true,timeout:12000,maximumAge:30000}
+    );
+  });
+}
+async function enterPickMode(){
+  const note=$("#startNote"); const ok=await ensureLeaflet();
+  if(!ok){ note.textContent="El mapa necesita conexión. Usa «Mi ubicación» o elige una estructura como inicio."; return; }
+  const L=window.L;
+  $("#mapPlaceholder").style.display="none"; $("#schematic").style.display="none";
+  if(!mapObj){ mapObj=L.map("map",{zoomControl:true});
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"© OpenStreetMap"}).addTo(mapObj); }
+  if(!mapClickBound){ mapObj.on("click",onMapClick); mapClickBound=true; }
+  if(mapLayer){ try{mapObj.removeLayer(mapLayer);}catch(e){} mapLayer=null; }
+  const sel=INV.filter(it=>SELECTED.has(it.code));
+  if(sel.length) mapObj.fitBounds(sel.map(p=>[p.lat,p.lon]),{padding:[30,30]}); else mapObj.setView([40.4168,-3.7038],11);
+  if(pickedPoint){ if(pickMarker)pickMarker.setLatLng([pickedPoint.lat,pickedPoint.lon]); else pickMarker=L.marker([pickedPoint.lat,pickedPoint.lon]).addTo(mapObj); }
+  setTimeout(()=>mapObj.invalidateSize(),60);
+  picking=true; note.innerHTML="Toca en el mapa tu <b>punto de inicio</b>.";
+}
+function onMapClick(e){
+  if(!picking)return;
+  pickedPoint={kind:"map",label:"Punto elegido",lat:e.latlng.lat,lon:e.latlng.lng};
+  if(pickMarker)pickMarker.setLatLng(e.latlng); else pickMarker=window.L.marker(e.latlng).addTo(mapObj);
+  updateStartNote();
+}
+
+/* ------------------------------ Cálculo ---------------------------------- */
+$("#calc").addEventListener("click",async()=>{
+  if(calculating)return;
+  hideMsg($("#selMsg")); hideAC();
+  const stops=INV.filter(it=>SELECTED.has(it.code));
+  if(stops.length<1){showMsg($("#selMsg"),"warn","Selecciona al menos una estructura.");return;}
+  const closed=$('input[name="mode"]:checked').value==="closed";
+  const engine=$('input[name="engine"]:checked').value;
+  const startMode=$("#startSel").value;
+
+  calculating=true;
+  try{
+    let originPoint=null, startStructIdx=null, liveOrigin=false, note="";
+    if(startMode==="__gps__"){
+      liveOrigin=true; setCalcBusy(true,"Obteniendo tu ubicación (GPS)…");
+      try{ originPoint=await getGPS(); }
+      catch(err){ originPoint=null; note="No se pudo usar tu ubicación ("+err.message+"): se calcula el orden óptimo y la navegación partirá igualmente de tu ubicación en vivo."; }
+    }else if(startMode==="__map__"){
+      if(!pickedPoint){ showMsg($("#selMsg"),"warn","Toca un punto en el mapa para fijar el inicio, o cambia el modo de inicio."); return; }
+      originPoint={kind:"map",label:"Punto elegido",lat:pickedPoint.lat,lon:pickedPoint.lon};
+    }else if(startMode!==""){
+      startStructIdx=stops.findIndex(p=>p.code===startMode); if(startStructIdx<0)startStructIdx=null;
+    }
+
+    // Una sola estructura sin origen fijo -> navegar directamente a ella desde tu ubicación en vivo
+    if(stops.length===1 && !originPoint){
+      renderResults([0],[stops[0]],false,{mode:"line",nodes:[stops[0]]},true,note);
+      return;
+    }
+
+    const nodes = originPoint ? [originPoint].concat(stops) : stops;
+    const startIdx = originPoint ? 0 : startStructIdx;
+
+    let res, info;
+    if(engine==="road"){
+      setCalcBusy(true,"Consultando tiempos por carretera (OSRM)…");
+      let table=null,err=null;
+      try{ table=await osrmTable(nodes); }catch(e){ err=e; }
+      if(table&&table.ok&&!table.hasNull){
+        res=solveMatrix(table.durations,{closed,startIdx});
+        info={mode:"road",dur:table.durations,dist:table.distances,nodes};
+      }else{
+        const why=err?("no se pudo conectar con el servicio de rutas: "+err.message):(table&&table.hasNull?"algún tramo no tiene ruta por carretera":"respuesta no válida del servicio");
+        res=solveMatrix(haversineMatrix(nodes),{closed,startIdx});
+        info={mode:"line",nodes,fallbackNote:why};
+      }
+    }else{
+      setCalcBusy(true,"");
+      res=solveMatrix(haversineMatrix(nodes),{closed,startIdx});
+      info={mode:"line",nodes};
+    }
+    info.exact=res.exact;
+    renderResults(res.order,nodes,closed,info,liveOrigin,note);
+  }catch(e){
+    showMsg($("#resMsg"),"err","Error al calcular la ruta: "+e.message);
+  }finally{
+    calculating=false; setCalcBusy(false); picking=false;
+  }
+});
+
+$("#calcMobile").addEventListener("click",()=>$("#calc").click());
+$("#startSel").addEventListener("change",()=>{ picking=false; const v=$("#startSel").value; if(v==="__map__") enterPickMode(); else updateStartNote(); });
+
+function renderResults(order, nodes, closed, info, liveOrigin, note){
+  $("#resEmpty").classList.add("hidden");$("#resContent").classList.remove("hidden");
+  const road=info.mode==="road";
+  const orderedNodes=order.map(i=>nodes[i]);
+  const originNode = orderedNodes.length && orderedNodes[0].kind ? orderedNodes[0] : null;
+  let navStops=orderedNodes.filter(n=>!n.kind);
+  if(closed && navStops.length>1 && navStops[0]===navStops[navStops.length-1]) navStops=navStops.slice(0,-1);
+  lastOrdered=navStops;
+  lastRoute={nodes:nodes,closed:closed,info:info,liveOrigin:liveOrigin,note:note,originNode:originNode,navStops:navStops.slice()};
+  const stopsCount=navStops.length, multi=orderedNodes.length>1;
+  const chip=multi?('<span class="method '+(info.manual?"manual":(info.exact?"exact":"approx"))+'">'+(info.manual?"Orden manual":(info.exact?"Orden óptimo exacto":"Orden aproximado"))+'</span>'):'';
+
+  const summary=$("#summary");
+  if(road){
+    let tSec=0,tM=0;
+    for(let i=1;i<order.length;i++){ tSec+=info.dur[order[i-1]][order[i]]; if(info.dist)tM+=info.dist[order[i-1]][order[i]]; }
+    summary.innerHTML='<span class="metric">Tiempo (por carretera): <b>'+fmtDur(tSec)+'</b></span>'
+      +(info.dist?'<span class="metric">Distancia: <b>'+fmtKmVal(tM/1000)+'</b> km</span>':'')
+      +'<span class="engtag road">carretera</span>'+chip;
+    $("#attrib").textContent="Tiempos y distancias: OSRM · © OpenStreetMap contributors · sin tráfico en directo";
+  }else{
+    let km=0; for(let i=1;i<orderedNodes.length;i++) km+=haversine(orderedNodes[i-1],orderedNodes[i]);
+    summary.innerHTML=(multi?'<span class="metric">Distancia (línea recta): <b>'+fmtKmVal(km)+'</b> km</span>':'<span class="metric">Destino único</span>')
+      +'<span class="engtag line">'+(multi?'línea recta':'navegar')+'</span>'+chip;
+    $("#attrib").textContent="";
+  }
+  if(!multi) $("#resCount").textContent="Navegar a 1 estructura";
+  else { const fromTxt=originNode?((liveOrigin?"Desde tu ubicación":"Desde punto elegido")+" · "):""; $("#resCount").textContent=fromTxt+(closed?"Cerrada":"Abierta")+" · "+stopsCount+(stopsCount===1?" parada":" paradas"); }
+
+  const ol=$("#itin");ol.innerHTML=""; const showMove=navStops.length>1; let si=-1;
+  for(let i=0;i<orderedNodes.length;i++){
+    const nd=orderedNodes[i], isOrigin=!!nd.kind, isRet=closed&&i===orderedNodes.length-1&&!isOrigin;
+    let legHtml=(i===0)?"inicio":"";
+    if(i>0){
+      if(road){ const s=info.dur[order[i-1]][order[i]], d=info.dist?info.dist[order[i-1]][order[i]]:null; legHtml="+"+fmtDur(s)+(d!=null?'<br><span class="d">'+fmtKm(d)+'</span>':""); }
+      else legHtml="+"+fmtKmVal(haversine(orderedNodes[i-1],nd))+" km";
+    }
+    const li=document.createElement("li");
+    if(isOrigin)li.className="origin"; else if(isRet)li.className="ret";
+    if(isOrigin){
+      const olabel=(i===0)?(nd.label||"Inicio"):("Volver a "+(nd.kind==="gps"?"tu ubicación":"punto elegido"));
+      li.innerHTML='<span class="onum">▶</span><span class="who"><span class="cod">'+escapeHtml(olabel)+'</span></span><span class="leg">'+legHtml+'</span>';
+    }else{
+      let moveBtns='';
+      if(!isRet){ si++; if(showMove) moveBtns='<br><span class="mv"><button class="mvup" data-si="'+si+'" title="Subir">↑</button><button class="mvdn" data-si="'+si+'" title="Bajar">↓</button></span>'; }
+      li.innerHTML='<span class="num"></span>'
+        +'<span class="who"><span class="cod">'+escapeHtml(nd.code)+'</span> <span class="nm">'+escapeHtml(nd.name)+'</span><br><span class="di">'+escapeHtml(nd.distrito)+'</span></span>'
+        +'<span class="leg">'+legHtml+'<br><a class="go2" target="_blank" rel="noopener" href="'+mapsStopUrl(nd)+'">Maps ↗</a>'+moveBtns+'</span>';
+    }
+    ol.appendChild(li);
+  }
+
+  const url=computeMapsUrl(orderedNodes, liveOrigin);
+  $("#openMaps").href=url;$("#urlBox").textContent=url;
+
+  let msgs=[];
+  if(note)msgs.push(escapeHtml(note));
+  if(info.fallbackNote)msgs.push('No se pudo usar «tiempo por carretera» ('+escapeHtml(info.fallbackNote)+'). Se ha calculado por <b>línea recta</b>. Revisa tu conexión o el proxy corporativo.');
+  if(navStops.length>10)msgs.push('La ruta tiene '+navStops.length+' paradas. El enlace de ruta completa admite ~10; si Google Maps no las carga todas, usa los enlaces «Maps ↗» de cada parada para ir de una en una.');
+  if(msgs.length)showMsg($("#resMsg"),"warn",msgs.join("<br><br>")); else hideMsg($("#resMsg"));
+
+  drawMap(orderedNodes,closed);
+  if(window.matchMedia&&window.matchMedia("(max-width:900px)").matches){
+    try{document.getElementById("mapwrap").scrollIntoView({behavior:"smooth",block:"start"});}catch(e){}
+  }
+}
+
+function moveStop(i,dir){
+  if(!lastRoute)return; const s=lastRoute.navStops, j=i+dir;
+  if(i<0||i>=s.length||j<0||j>=s.length)return;
+  const t=s[i]; s[i]=s[j]; s[j]=t; rerenderManual();
+}
+function rerenderManual(){
+  const lr=lastRoute; if(!lr)return;
+  const seq=[]; if(lr.originNode)seq.push(lr.originNode);
+  for(const st of lr.navStops)seq.push(st);
+  if(lr.closed)seq.push(lr.originNode||lr.navStops[0]);
+  const order=seq.map(nd=>lr.nodes.indexOf(nd));
+  renderResults(order, lr.nodes, lr.closed, Object.assign({},lr.info,{manual:true}), lr.liveOrigin, lr.note);
+}
+$("#itin").addEventListener("click",(e)=>{
+  const b=e.target.closest(".mvup,.mvdn"); if(!b)return;
+  moveStop(parseInt(b.getAttribute("data-si"),10), b.classList.contains("mvup")?-1:1);
+});
+
+function mapsStopUrl(p){return "https://www.google.com/maps/dir/?api=1&travelmode=driving&destination="+encodeURIComponent(p.lat+","+p.lon);}
+function computeMapsUrl(orderedNodes, liveOrigin){
+  const pt=p=>p.lat+","+p.lon;
+  if(!orderedNodes.length) return "";
+  const firstIsOrigin = !!orderedNodes[0].kind;
+  let origin, seq;
+  if(liveOrigin){ origin=null; seq = firstIsOrigin ? orderedNodes.slice(1) : orderedNodes.slice(); }
+  else { origin=orderedNodes[0]; seq=orderedNodes.slice(1); }
+  if(!seq.length){
+    return "https://www.google.com/maps/dir/?api=1&travelmode=driving&destination="+encodeURIComponent(pt(origin||orderedNodes[0]));
+  }
+  const destination=seq[seq.length-1], mids=seq.slice(0,seq.length-1);
+  let url="https://www.google.com/maps/dir/?api=1&travelmode=driving";
+  if(origin) url+="&origin="+encodeURIComponent(pt(origin));
+  url+="&destination="+encodeURIComponent(pt(destination));
+  if(mids.length) url+="&waypoints="+mids.map(pt).map(encodeURIComponent).join("%7C");
+  return url;
+}
+$("#copyMaps").addEventListener("click",async()=>{
+  const url=$("#urlBox").textContent;
+  try{await navigator.clipboard.writeText(url);toast("Enlace copiado");}
+  catch{ const r=document.createRange();r.selectNode($("#urlBox"));const s=getSelection();s.removeAllRanges();s.addRange(r);
+    try{document.execCommand("copy");toast("Enlace copiado");}catch{toast("Copia manual: selecciona el texto");}s.removeAllRanges(); }
+});
+async function copyText(txt){
+  try{await navigator.clipboard.writeText(txt);return true;}catch{}
+  try{const ta=document.createElement("textarea");ta.value=txt;ta.style.position="fixed";ta.style.opacity="0";document.body.appendChild(ta);ta.select();document.execCommand("copy");document.body.removeChild(ta);return true;}catch{return false;}
+}
+$("#copyList").addEventListener("click",async()=>{
+  if(!lastOrdered||!lastOrdered.length){toast("Calcula primero una ruta");return;}
+  const lines=lastOrdered.map((p,i)=>(i+1)+". "+p.code+" · "+p.name+"\n   "+mapsStopUrl(p));
+  const ok=await copyText("Ruta de inspección ("+lastOrdered.length+" paradas)\n\n"+lines.join("\n\n"));
+  toast(ok?"Lista copiada":"No se pudo copiar");
+});
+
+/* ---- Exportar la ruta como ficha autónoma para el móvil ---- */
+const CARD_CSS="*{box-sizing:border-box}body{margin:0;font-family:'Segoe UI',system-ui,Arial,sans-serif;background:#f2f3f5;color:#17191c;font-size:16px}"
++"header{background:#fff;padding:16px;border-bottom:1px solid #dcdfe3}h1{margin:0;font-size:20px}.sub{color:#5b6570;font-size:14px;margin-top:2px}"
++".full{display:block;margin-top:12px;background:#B4610A;color:#fff;text-align:center;text-decoration:none;padding:14px;border-radius:8px;font-weight:600}"
++"ol{list-style:none;margin:0;padding:10px}li{display:flex;align-items:center;gap:12px;background:#fff;border:1px solid #dcdfe3;border-radius:10px;padding:12px;margin-bottom:10px}"
++".n{flex:none;width:34px;height:34px;border-radius:50%;background:#F6EDE1;border:1px solid #e2cba9;color:#B4610A;font-weight:700;display:flex;align-items:center;justify-content:center;font-family:monospace}"
++".w{flex:1;min-width:0}.c{font-family:monospace;color:#B4610A;font-weight:700;font-size:14px}.nm{font-size:14px;line-height:1.3}.di{color:#5b6570;font-size:12px;font-family:monospace}"
++".go{flex:none;background:#17191c;color:#fff;text-decoration:none;padding:12px 14px;border-radius:8px;font-weight:600;font-size:14px}"
++"footer{color:#5b6570;font-size:12px;text-align:center;padding:14px 14px 30px}";
+function buildRouteCard(ordered){
+  const rows=ordered.map(function(p,i){
+    return '<li><div class="n">'+(i+1)+'</div><div class="w"><div class="c">'+escapeHtml(p.code)+'</div><div class="nm">'+escapeHtml(p.name)+'</div><div class="di">'+escapeHtml(p.distrito)+'</div></div><a class="go" href="'+mapsStopUrl(p)+'" target="_blank" rel="noopener">Navegar ▶</a></li>';
+  }).join("");
+  const full=computeMapsUrl(ordered, true), date=new Date().toLocaleDateString("es-ES");
+  return '<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Ruta de inspección</title><style>'+CARD_CSS+'</style></head><body>'
+    +'<header><h1>Ruta de inspección</h1><div class="sub">'+ordered.length+' paradas · '+date+'</div>'
+    +'<a class="full" href="'+full+'" target="_blank" rel="noopener">Abrir ruta completa en Maps</a></header>'
+    +'<ol>'+rows+'</ol><footer>Pulsa «Navegar» en cada parada para ir de una en una.</footer></body></html>';
+}
+function downloadFile(name,html){
+  const blob=new Blob([html],{type:"text/html;charset=utf-8"}), url=URL.createObjectURL(blob);
+  const a=document.createElement("a");a.href=url;a.download=name;document.body.appendChild(a);a.click();
+  setTimeout(function(){URL.revokeObjectURL(url);a.remove();},1000);
+}
+$("#exportRoute").addEventListener("click",()=>{
+  if(!lastOrdered||!lastOrdered.length){toast("Calcula primero una ruta");return;}
+  const d=new Date(), stamp=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+  try{ downloadFile("ruta_inspeccion_"+stamp+".html", buildRouteCard(lastOrdered)); toast("Ruta exportada"); }
+  catch(e){ toast("No se pudo exportar: "+e.message); }
+});
+
+/* ------------------------------ Mapa ------------------------------------- */
+let leafletTried=false,leafletOK=false,mapObj=null,mapLayer=null;
+function loadScript(src){return new Promise((res,rej)=>{const s=document.createElement("script");s.src=src;s.onload=res;s.onerror=rej;document.head.appendChild(s);setTimeout(rej,7000);});}
+function loadCss(href){return new Promise(res=>{const l=document.createElement("link");l.rel="stylesheet";l.href=href;l.onload=res;l.onerror=res;document.head.appendChild(l);setTimeout(res,3000);});}
+async function ensureLeaflet(){
+  if(leafletTried)return leafletOK; leafletTried=true;
+  try{await loadCss(CDN.leafletCss);await loadScript(CDN.leafletJs);leafletOK=!!window.L;}catch{leafletOK=false;}
+  return leafletOK;
+}
+async function drawMap(ordered,closed){
+  $("#mapPlaceholder").style.display="none";
+  const ok=await ensureLeaflet();
+  if(ok)drawLeaflet(ordered,closed); else drawSchematic(ordered,closed);
+}
+function drawLeaflet(ordered,closed){
+  $("#schematic").style.display="none";
+  const L=window.L;
+  if(!mapObj){ mapObj=L.map("map",{zoomControl:true});
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"© OpenStreetMap"}).addTo(mapObj); }
+  if(!mapClickBound){ mapObj.on("click",onMapClick); mapClickBound=true; }
+  if(pickMarker){ try{mapObj.removeLayer(pickMarker);}catch(e){} pickMarker=null; }
+  if(mapLayer)mapLayer.remove();
+  mapLayer=L.layerGroup().addTo(mapObj);
+  const latlngs=ordered.map(p=>[p.lat,p.lon]);
+  if(latlngs.length>1) L.polyline(latlngs,{color:"#B4610A",weight:4,opacity:.85}).addTo(mapLayer);
+  let n=0;
+  ordered.forEach((p,i)=>{
+    if(closed && i===ordered.length-1) return;
+    if(p.kind){
+      const icon=L.divIcon({className:"",html:'<div class="mk start">▶</div>',iconSize:[26,26],iconAnchor:[13,13]});
+      L.marker([p.lat,p.lon],{icon}).addTo(mapLayer).bindPopup("<b>"+escapeHtml(p.label||"Inicio")+"</b>");
+    }else{
+      n++;
+      const icon=L.divIcon({className:"",html:'<div class="mk">'+n+'</div>',iconSize:[26,26],iconAnchor:[13,13]});
+      L.marker([p.lat,p.lon],{icon}).addTo(mapLayer).bindPopup("<b>"+n+". "+escapeHtml(p.code)+"</b><br>"+escapeHtml(p.name));
+    }
+  });
+  if(latlngs.length===1) mapObj.setView(latlngs[0],15); else mapObj.fitBounds(latlngs,{padding:[35,35]});
+  setTimeout(()=>mapObj.invalidateSize(),60);
+  $("#maptag").textContent="Líneas rectas entre paradas · basemap OSM";
+  picking=false;
+}
+function drawSchematic(ordered,closed){
+  const svg=$("#schematic");svg.style.display="block";svg.innerHTML="";
+  const W=600,H=360,m=44;
+  const lats=ordered.map(p=>p.lat),lons=ordered.map(p=>p.lon);
+  const laMin=Math.min(...lats),laMax=Math.max(...lats),loMin=Math.min(...lons),loMax=Math.max(...lons);
+  const sx=lo=>{const t=loMax===loMin?.5:(lo-loMin)/(loMax-loMin);return m+t*(W-2*m);};
+  const sy=la=>{const t=laMax===laMin?.5:(la-laMin)/(laMax-laMin);return H-m-t*(H-2*m);};
+  const NS="http://www.w3.org/2000/svg";
+  if(ordered.length>1){
+    const line=document.createElementNS(NS,"polyline");
+    line.setAttribute("points",ordered.map(p=>sx(p.lon)+","+sy(p.lat)).join(" "));
+    line.setAttribute("fill","none");line.setAttribute("stroke","#B4610A");line.setAttribute("stroke-width","2.5");line.setAttribute("opacity",".85");
+    svg.appendChild(line);
+  }
+  let n=0;
+  ordered.forEach((p,i)=>{
+    if(closed && i===ordered.length-1) return;
+    const cx=sx(p.lon),cy=sy(p.lat), isOrigin=!!p.kind;
+    const c=document.createElementNS(NS,"circle");
+    c.setAttribute("cx",cx);c.setAttribute("cy",cy);c.setAttribute("r","13");
+    c.setAttribute("fill",isOrigin?"#1F6F5C":"#B4610A");c.setAttribute("stroke","#fff");c.setAttribute("stroke-width","2");svg.appendChild(c);
+    const t=document.createElementNS(NS,"text");
+    t.setAttribute("x",cx);t.setAttribute("y",cy+4);t.setAttribute("text-anchor","middle");
+    t.setAttribute("fill","#fff");t.setAttribute("font-size","12");t.setAttribute("font-family","monospace");t.setAttribute("font-weight","600");
+    t.textContent=isOrigin?"▶":String(++n); svg.appendChild(t);
+  });
+  $("#maptag").textContent="Esquema (sin conexión) · posiciones relativas";
+}
+
+/* ------------------------------ Carga ficheros --------------------------- */
+function acData(q){
+  q=norm(q); if(!q) return [];
+  const out=[];
+  for(const it of INV){ if(norm(it.code+" "+it.name+" "+it.distrito).includes(q)){ out.push(it); if(out.length>=8)break; } }
+  return out;
+}
+function renderAC(){
+  const q=$("#filter").value, box=$("#ac");
+  acMatches=acData(q); acActive=-1;
+  if(!q.trim()){ box.className="ac"; box.innerHTML=""; return; }
+  if(!acMatches.length){ box.className="ac show"; box.innerHTML='<div class="empty">Sin coincidencias</div>'; return; }
+  box.innerHTML=acMatches.map((it,i)=>'<div class="aci" data-i="'+i+'"><span class="cod">'+escapeHtml(it.code)+'</span><span class="nm">'+escapeHtml(it.name)+'<br><span class="di">'+escapeHtml(it.distrito)+'</span></span>'+(SELECTED.has(it.code)?'<span class="tick">✓</span>':'')+'</div>').join("");
+  box.className="ac show";
+}
+function highlightAC(){ const box=$("#ac"); [...box.querySelectorAll(".aci")].forEach((el,i)=>el.classList.toggle("active",i===acActive)); const act=box.querySelector(".aci.active"); if(act)act.scrollIntoView({block:"nearest"}); }
+function pickAC(i){
+  const it=acMatches[i]; if(!it)return;
+  if(SELECTED.has(it.code))SELECTED.delete(it.code); else SELECTED.add(it.code);
+  renderList(); renderStartOptions(); updateSelCount(); renderAC(); $("#filter").focus();
+}
+function hideAC(){ const box=$("#ac"); box.className="ac"; box.innerHTML=""; }
+$("#filter").addEventListener("input",()=>{ renderList(); renderAC(); });
+$("#filter").addEventListener("keydown",(e)=>{
+  const box=$("#ac"); if(!box.classList.contains("show"))return;
+  if(e.key==="ArrowDown"){ e.preventDefault(); acActive=Math.min(acActive+1,acMatches.length-1); highlightAC(); }
+  else if(e.key==="ArrowUp"){ e.preventDefault(); acActive=Math.max(acActive-1,0); highlightAC(); }
+  else if(e.key==="Enter"){ e.preventDefault(); pickAC(acActive>=0?acActive:0); }
+  else if(e.key==="Escape"){ hideAC(); }
+});
+$("#ac").addEventListener("mousedown",(e)=>{ const el=e.target.closest(".aci"); if(!el)return; e.preventDefault(); pickAC(parseInt(el.getAttribute("data-i"),10)); });
+document.addEventListener("click",(e)=>{ if(!e.target.closest(".acwrap")) hideAC(); });
+$("#selAll").addEventListener("click",()=>{
+  const q=norm($("#filter").value);
+  INV.forEach(it=>{if(!q||norm(it.code+" "+it.name+" "+it.distrito).includes(q))SELECTED.add(it.code);});
+  renderList();renderStartOptions();updateSelCount();
+});
+$("#selNone").addEventListener("click",()=>{SELECTED.clear();renderList();renderStartOptions();updateSelCount();});
+
+$("#saveRoute").addEventListener("click",()=>{
+  const codes=[...SELECTED];
+  if(!codes.length){showMsg($("#selMsg"),"warn","Selecciona estructuras antes de guardar la ruta.");return;}
+  const def="Ruta "+new Date().toLocaleDateString("es-ES");
+  let name; try{ name=prompt("Nombre de la ruta:", def); }catch(e){ name=def; }
+  if(name===null)return; name=(name||"").trim()||def;
+  const closed=$('input[name="mode"]:checked').value==="closed";
+  const engine=$('input[name="engine"]:checked').value;
+  const a=loadRoutes(); a.unshift({name:name,codes:codes,closed:closed,engine:engine,ts:Date.now()}); if(a.length>50)a.length=50;
+  const ok=saveRoutesArr(a); refreshSavedRoutes();
+  toast(ok?"Ruta guardada":"No se pudo guardar (almacenamiento no disponible)");
+});
+$("#loadRoute").addEventListener("click",()=>{
+  const sel=$("#savedRoutes"), i=parseInt(sel.value,10);
+  if(isNaN(i)){showMsg($("#selMsg"),"warn","Elige una ruta guardada de la lista.");return;}
+  const a=loadRoutes(), r=a[i]; if(!r)return;
+  const inInv=new Set(INV.map(it=>it.code));
+  const found=r.codes.filter(c=>inInv.has(c)), missing=r.codes.filter(c=>!inInv.has(c));
+  SELECTED=new Set(found);
+  const modeR=document.querySelector('input[name="mode"][value="'+(r.closed?"closed":"open")+'"]'); if(modeR)modeR.checked=true;
+  const engR=document.querySelector('input[name="engine"][value="'+(r.engine==="line"?"line":"road")+'"]'); if(engR)engR.checked=true;
+  renderList(); renderStartOptions(); updateSelCount();
+  $("#startSel").value=(window.isSecureContext?"__gps__":""); updateStartNote();
+  if(missing.length) showMsg($("#selMsg"),"warn","Cargada «"+escapeHtml(r.name)+"»: "+found.length+" estructura(s). "+missing.length+" ya no está(n) en el inventario: "+escapeHtml(missing.join(", "))+".");
+  else hideMsg($("#selMsg"));
+  toast("Ruta cargada: "+found.length+" estructuras");
+  if(found.length) $("#calc").click();
+});
+$("#delRoute").addEventListener("click",()=>{
+  const sel=$("#savedRoutes"), i=parseInt(sel.value,10);
+  if(isNaN(i)){showMsg($("#selMsg"),"warn","Elige una ruta guardada para borrar.");return;}
+  const a=loadRoutes(); if(i<0||i>=a.length)return;
+  const nm=a[i].name; a.splice(i,1); saveRoutesArr(a); refreshSavedRoutes();
+  toast("Ruta borrada: "+nm);
+});
+$("#btnReset").addEventListener("click",()=>{try{localStorage.removeItem(INV_KEY);}catch(e){}loadInventory(ingest(DEFAULT_ROWS,"contrato"),"contrato");toast("Inventario del contrato restaurado");});
+
+$("#btnCsv").addEventListener("click",()=>$("#fileCsv").click());
+$("#fileCsv").addEventListener("change",e=>{
+  const f=e.target.files[0];if(!f)return;
+  const rd=new FileReader();
+  rd.onload=()=>{try{const rows=parseCSV(rd.result);if(loadInventory(ingest(rows,f.name),f.name)){const ok=saveInventory(f.name);if(ok)markPersistedSrc();toast(ok?"CSV cargado y guardado en este equipo":"CSV cargado (no se pudo guardar en este equipo)");}}
+    catch(err){showMsg($("#selMsg"),"err","No se pudo leer el CSV: "+err.message);}};
+  rd.onerror=()=>showMsg($("#selMsg"),"err","Error al abrir el fichero.");
+  rd.readAsText(f,"utf-8"); e.target.value="";
+});
+$("#btnXlsx").addEventListener("click",()=>$("#fileXlsx").click());
+$("#fileXlsx").addEventListener("change",async e=>{
+  const f=e.target.files[0];if(!f)return;e.target.value="";
+  try{
+    const buf=await f.arrayBuffer();
+    let rows=null;
+    try{ rows=await readXlsx(buf); }                 // lector integrado (sin conexión)
+    catch(natErr){                                   // respaldo: SheetJS por CDN
+      if(!window.XLSX){try{await loadScript(CDN.sheetJs);}catch{}}
+      if(window.XLSX){
+        const wb=XLSX.read(new Uint8Array(buf),{type:"array"});
+        rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,raw:false,defval:""});
+      }else throw natErr;
+    }
+    if(loadInventory(ingest(rows,f.name),f.name)){const ok=saveInventory(f.name);if(ok)markPersistedSrc();toast(ok?"Excel cargado y guardado en este equipo":"Excel cargado (no se pudo guardar en este equipo)");}
+  }catch(err){
+    showMsg($("#selMsg"),"err","No se pudo leer el Excel ("+escapeHtml(err.message)+"). Si tu navegador es muy antiguo, exporta a <b>CSV</b> y usa «Cargar .csv».");
+  }
+});
+
+/* ------------------------------ Arranque --------------------------------- */
+(function(){const saved=loadSaved();if(saved){if(loadInventory({items:saved.items},saved.label))markPersistedSrc();}else loadInventory(ingest(DEFAULT_ROWS,"contrato"),"contrato"); refreshSavedRoutes();})();
+</script>
+<script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});}</script>
+</body>
+</html>
