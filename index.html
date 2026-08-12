@@ -60,7 +60,7 @@
   .list{max-height:40vh;overflow:auto;border:1px solid var(--line);border-radius:var(--r-sm)}
   .group>.gh{position:sticky;top:0;background:#f2f3f5;border-bottom:1px solid var(--line);padding:6px 11px;
     font-size:11.5px;letter-spacing:.03em;text-transform:uppercase;color:var(--slate);font-weight:600;z-index:1}
-  .row{display:grid;grid-template-columns:20px 66px 1fr;gap:9px;align-items:start;padding:8px 11px;border-bottom:1px solid #eef0f2;cursor:pointer}
+  .row{display:grid;grid-template-columns:20px 58px 1fr auto;gap:9px;align-items:center;padding:8px 11px;border-bottom:1px solid #eef0f2;cursor:pointer}
   .row:last-child{border-bottom:0}
   .row:hover{background:#f7f8f9}
   .row.on{background:var(--sel)}
@@ -68,6 +68,19 @@
   .row .cod{font-family:var(--mono);font-size:12.5px;color:var(--accent);font-weight:600}
   .row .nm{font-size:13px;line-height:1.35}
   .row .meta{font-size:11px;color:var(--slate);font-family:var(--mono)}
+  .row .add{justify-self:end;font-family:var(--ui);font-size:11px;font-weight:600;padding:4px 9px;border-radius:20px;border:1px solid var(--accent);color:var(--accent);white-space:nowrap}
+  .row .add.on{border-color:var(--ok);color:var(--ok);background:#f0f8f3}
+  #addBtn{border-color:var(--accent);color:var(--accent)}
+  .addpanel{border:1px solid var(--line-strong);border-radius:var(--r-sm);margin:6px 0 12px;overflow:hidden}
+  .addpanel #addSearch{width:100%;border:0;border-bottom:1px solid var(--line);border-radius:0;font-size:16px;padding:11px 12px}
+  .addlist{max-height:240px;overflow:auto}
+  .addrow{display:grid;grid-template-columns:58px 1fr auto;gap:9px;align-items:center;padding:11px;border-bottom:1px solid #eef0f2;cursor:pointer}
+  .addrow:last-child{border-bottom:0}
+  .addrow:hover{background:var(--sel)}
+  .addrow .cod{font-family:var(--mono);font-size:12.5px;color:var(--accent);font-weight:600}
+  .addrow .nm{font-size:13px;line-height:1.3}
+  .addrow .di{font-size:11px;color:var(--slate);font-family:var(--mono)}
+  .addrow .add{justify-self:end;font-size:11px;font-weight:600;padding:4px 9px;border-radius:20px;border:1px solid var(--accent);color:var(--accent);white-space:nowrap}
 
   fieldset.opts{border:1px solid var(--line);border-radius:var(--r-sm);padding:11px 13px;margin:14px 0 0}
   fieldset.opts legend{font-size:11.5px;letter-spacing:.03em;text-transform:uppercase;color:var(--slate);font-weight:600;padding:0 6px}
@@ -188,7 +201,7 @@
     .selbar button{padding:9px 11px;font-size:14px}
     .selbar .count{width:100%;order:3;margin:4px 0 0}
     .list{max-height:46vh}
-    .row{grid-template-columns:24px 70px 1fr;padding:12px;gap:10px}
+    .row{grid-template-columns:24px 62px 1fr auto;padding:12px;gap:10px}
     .row input{width:22px;height:22px;margin-top:0}
     .row .nm{font-size:14px}
     .optrow label{font-size:15px;padding:3px 0}
@@ -237,7 +250,7 @@
       <div class="hd"><h2>Estructuras</h2><span class="count" id="invCount">—</span></div>
       <div class="bd">
         <div class="acwrap">
-          <input type="text" class="filter" id="filter" placeholder="Buscar por código, nombre o distrito…" autocomplete="off">
+          <input type="text" class="filter" id="filter" placeholder="Buscar por código o nombre y tocar para añadir…" autocomplete="off">
           <div class="ac" id="ac"></div>
         </div>
         <div class="selbar">
@@ -307,7 +320,11 @@
         <div id="resContent" class="hidden">
           <div class="summary" id="summary"></div>
           <div class="attrib" id="attrib"></div>
-          <div class="rowbtns"><button id="recalc">Recalcular</button><button id="bigMap">Ver mapa grande</button></div>
+          <div class="rowbtns"><button id="recalc">Recalcular</button><button id="addBtn">+ Añadir estructura</button><button id="bigMap">Ver mapa grande</button></div>
+          <div id="addPanel" class="addpanel hidden">
+            <input type="text" id="addSearch" placeholder="Buscar estructura para añadir…" autocomplete="off">
+            <div id="addList" class="addlist"></div>
+          </div>
           <ol class="itin" id="itin"></ol>
 
           <div class="maps">
@@ -330,13 +347,13 @@
     <div class="docbd">
       <h3>Uso</h3>
       <ul>
-        <li>Marca las estructuras a visitar (usa el filtro). Elige el <b>motor</b>: «Tiempo por carretera» (recomendado) o «Línea recta» (sin internet).</li>
+        <li>Marca las estructuras a visitar: desplázate por la lista (agrupada por distrito) o <b>busca por código o nombre</b> y toca <b>«Añadir»</b> en cada resultado (pasa a «✓ En ruta»). Elige el <b>motor</b>: «Tiempo por carretera» (recomendado) o «Línea recta» (sin internet).</li>
         <li>Elige ruta <b>abierta</b> o <b>cerrada</b> y, si quieres, un <b>inicio</b> fijo. Pulsa <b>Calcular ruta óptima</b>.</li>
         <li>Abre la <b>ruta completa</b> en Google Maps con un toque (navegación con tráfico del momento).</li>
         <li>O usa el enlace <b>«Maps ↗»</b> de cada parada para ir <b>de una en una</b> (ideal con muchas paradas: inspeccionas, vuelves y pinchas la siguiente). «Copiar lista de paradas» te lleva la ruta ordenada al móvil.</li>
         <li><b>Rutas guardadas</b>: guarda la selección con un nombre y recupérala cuando quieras; al cargarla, la ruta se calcula <b>desde tu ubicación</b> para iniciarla estés donde estés. Se guarda en ese navegador/equipo.</li>
         <li><b>Reordenar a mano</b>: en el itinerario, usa ↑/↓ en cada parada para cambiar el orden; se marca «Orden manual» y se recalculan tiempos, mapa y enlace.</li>
-        <li><b>Editar la ruta</b>: <b>✕</b> quita una parada; para añadir, márcala en la lista o el buscador y pulsa <b>Recalcular</b>. <b>Empezar de cero</b> vacía la selección y el resultado. <b>Ver mapa grande</b> abre el mapa de la ruta a pantalla completa en otra pestaña.</li>
+        <li><b>Editar la ruta</b>: <b>✕</b> quita una parada; <b>«+ Añadir estructura»</b> (bajo el mapa) busca y añade una estructura a la ruta al momento. <b>Empezar de cero</b> vacía la selección y el resultado. <b>Ver mapa grande</b> abre el mapa de la ruta a pantalla completa en otra pestaña.</li>
       </ul>
       <h3>Motor «Tiempo por carretera»</h3>
       <ul>
@@ -382,7 +399,7 @@
     </div>
   </details>
 
-  <footer>Herramienta local · v4.7 · editar ruta · buscador · mapa grande · PWA</footer>
+  <footer>Herramienta local · v4.9 · añadir estructura desde el resultado · buscar en lista · PWA</footer>
 </div>
 
 <div class="mobilebar" id="mobilebar">
@@ -392,7 +409,7 @@
 
 <script>
 /* =========================================================================
-   Ruta de inspección de estructuras — aplicación autónoma (v4.7, editar ruta + buscador desplegable + mapa grande + PWA)
+   Ruta de inspección de estructuras — aplicación autónoma (v4.9, anadir estructura desde el resultado + buscar en lista + PWA)
    Solver y datos 100% locales. Tiempos por carretera vía OSRM público
    (con respaldo a línea recta). Mapa Leaflet/OSM con respaldo SVG.
    ========================================================================= */
@@ -979,28 +996,41 @@ function loadInventory(result,label){
   return true;
 }
 function renderList(){
-  const q=norm($("#filter").value);
-  const groups={};
-  INV.forEach((it,idx)=>{ if(q){const hay=norm(it.code+" "+it.name+" "+it.distrito);if(!hay.includes(q))return;} (groups[it.distrito]=groups[it.distrito]||[]).push(idx); });
-  const keys=Object.keys(groups).sort((a,b)=>a.localeCompare(b,'es'));
+  const raw=$("#filter").value.trim(), q=norm(raw);
   const box=$("#list");box.innerHTML="";
-  if(!keys.length){box.innerHTML='<div class="placeholder">Sin coincidencias.</div>';return;}
+  function mkRow(it){
+    const on=SELECTED.has(it.code);
+    const row=document.createElement("label");row.className="row"+(on?" on":"");
+    row.innerHTML='<input type="checkbox" '+(on?"checked":"")+'>'
+      +'<span class="cod">'+escapeHtml(it.code)+'</span>'
+      +'<span><span class="nm">'+escapeHtml(it.name)+'</span><br><span class="meta">'+escapeHtml(it.distrito)+'</span></span>'
+      +'<span class="add'+(on?' on':'')+'">'+(on?'✓ En ruta':'Añadir')+'</span>';
+    row.querySelector("input").addEventListener("change",function(e){
+      const c=e.target.checked;
+      if(c)SELECTED.add(it.code); else SELECTED.delete(it.code);
+      row.classList.toggle("on",c);
+      const a=row.querySelector(".add"); if(a){ a.className="add"+(c?" on":""); a.textContent=c?"✓ En ruta":"Añadir"; }
+      renderStartOptions(); updateSelCount();
+    });
+    return row;
+  }
+  if(q){
+    const matches=INV.filter(function(it){return norm(it.code+" "+it.name+" "+it.distrito).includes(q);});
+    const hd=document.createElement("div"); hd.className="gh";
+    hd.textContent=matches.length?("Resultados ("+matches.length+") · toca para añadir"):"Sin coincidencias";
+    box.appendChild(hd);
+    matches.slice(0,60).forEach(function(it){box.appendChild(mkRow(it));});
+    if(matches.length>60){ const m=document.createElement("div"); m.className="meta"; m.style.padding="8px 11px"; m.textContent="Afina la búsqueda para ver más."; box.appendChild(m); }
+    return;
+  }
+  const groups={};
+  INV.forEach(function(it){(groups[it.distrito]=groups[it.distrito]||[]).push(it);});
+  const keys=Object.keys(groups).sort(function(a,b){return a.localeCompare(b,'es');});
+  if(!keys.length){box.innerHTML='<div class="placeholder">Sin estructuras.</div>';return;}
   for(const k of keys){
     const g=document.createElement("div");g.className="group";
     g.innerHTML='<div class="gh">'+escapeHtml(k)+' · '+groups[k].length+'</div>';
-    for(const idx of groups[k]){
-      const it=INV[idx],on=SELECTED.has(it.code);
-      const row=document.createElement("label");row.className="row"+(on?" on":"");
-      row.innerHTML='<input type="checkbox" '+(on?"checked":"")+'>'
-        +'<span class="cod">'+escapeHtml(it.code)+'</span>'
-        +'<span><span class="nm">'+escapeHtml(it.name)+'</span><br><span class="meta">'
-        +it.lat.toFixed(5)+', '+it.lon.toFixed(5)+(it.src&&it.src!=="enlace"?" · "+it.src:"")+'</span></span>';
-      row.querySelector("input").addEventListener("change",e=>{
-        if(e.target.checked)SELECTED.add(it.code);else SELECTED.delete(it.code);
-        row.classList.toggle("on",e.target.checked); renderStartOptions(); updateSelCount();
-      });
-      g.appendChild(row);
-    }
+    groups[k].forEach(function(it){g.appendChild(mkRow(it));});
     box.appendChild(g);
   }
 }
@@ -1194,9 +1224,10 @@ function renderResults(order, nodes, closed, info, liveOrigin, note){
   if(msgs.length)showMsg($("#resMsg"),"warn",msgs.join("<br><br>")); else hideMsg($("#resMsg"));
 
   drawMap(orderedNodes,closed);
-  if(window.matchMedia&&window.matchMedia("(max-width:900px)").matches){
+  if(!noScrollOnce && window.matchMedia&&window.matchMedia("(max-width:900px)").matches){
     try{document.getElementById("mapwrap").scrollIntoView({behavior:"smooth",block:"start"});}catch(e){}
   }
+  noScrollOnce=false;
 }
 
 function currentSeq(){
@@ -1269,6 +1300,33 @@ function openBigMap(){
 }
 $("#bigMap").addEventListener("click",openBigMap);
 $("#recalc").addEventListener("click",()=>$("#calc").click());
+
+let noScrollOnce=false;
+function renderAddList(){
+  const q=norm($("#addSearch").value), box=$("#addList");
+  box.innerHTML="";
+  if(!q){ box.innerHTML='<div class="di" style="padding:11px">Escribe código o nombre para buscar…</div>'; return; }
+  const matches=INV.filter(function(it){return !SELECTED.has(it.code) && norm(it.code+" "+it.name+" "+it.distrito).includes(q);}).slice(0,40);
+  if(!matches.length){ box.innerHTML='<div class="di" style="padding:11px">Sin coincidencias nuevas.</div>'; return; }
+  matches.forEach(function(it){
+    const row=document.createElement("div"); row.className="addrow";
+    row.innerHTML='<span class="cod">'+escapeHtml(it.code)+'</span><span><span class="nm">'+escapeHtml(it.name)+'</span><br><span class="di">'+escapeHtml(it.distrito)+'</span></span><span class="add">＋ Añadir</span>';
+    row.addEventListener("click",function(){ addToRoute(it.code); });
+    box.appendChild(row);
+  });
+}
+function addToRoute(code){
+  if(SELECTED.has(code))return;
+  SELECTED.add(code);
+  renderList(); renderStartOptions(); updateSelCount(); renderAddList();
+  toast("Añadida "+code+" · recalculando…");
+  noScrollOnce=true; $("#calc").click();
+}
+$("#addBtn").addEventListener("click",function(){
+  const p=$("#addPanel"); p.classList.toggle("hidden");
+  if(!p.classList.contains("hidden")){ renderAddList(); $("#addSearch").focus(); }
+});
+$("#addSearch").addEventListener("input",renderAddList);
 
 function mapsStopUrl(p){return "https://www.google.com/maps/dir/?api=1&travelmode=driving&destination="+encodeURIComponent(p.lat+","+p.lon);}
 function computeMapsUrl(orderedNodes, liveOrigin){
@@ -1408,41 +1466,8 @@ function drawSchematic(ordered,closed){
 }
 
 /* ------------------------------ Carga ficheros --------------------------- */
-function acData(q){
-  q=norm(q); if(!q) return [];
-  const out=[];
-  for(const it of INV){ if(norm(it.code+" "+it.name+" "+it.distrito).includes(q)){ out.push(it); if(out.length>=12)break; } }
-  return out;
-}
-function renderAC(){
-  const q=$("#filter").value, box=$("#ac");
-  acMatches=acData(q); acActive=-1;
-  if(!q.trim()){ box.className="ac"; box.innerHTML=""; return; }
-  if(!acMatches.length){ box.className="ac show"; box.innerHTML='<div class="empty">Sin coincidencias</div>'; return; }
-  box.innerHTML=acMatches.map((it,i)=>'<div class="aci" data-i="'+i+'"><span class="cod">'+escapeHtml(it.code)+'</span><span class="nm">'+escapeHtml(it.name)+'<br><span class="di">'+escapeHtml(it.distrito)+'</span></span><span class="tick'+(SELECTED.has(it.code)?' on':'')+'">'+(SELECTED.has(it.code)?'✓':'+')+'</span></div>').join("");
-  box.className="ac show";
-}
-function highlightAC(){ const box=$("#ac"); [...box.querySelectorAll(".aci")].forEach((el,i)=>el.classList.toggle("active",i===acActive)); const act=box.querySelector(".aci.active"); if(act)act.scrollIntoView({block:"nearest"}); }
-function pickAC(i){
-  const it=acMatches[i]; if(!it)return;
-  const add=!SELECTED.has(it.code);
-  if(add)SELECTED.add(it.code); else SELECTED.delete(it.code);
-  renderList(); renderStartOptions(); updateSelCount(); renderAC();
-  toast((add?"Añadida ":"Quitada ")+it.code);
-  $("#filter").focus();
-}
-function hideAC(){ const box=$("#ac"); box.className="ac"; box.innerHTML=""; }
-$("#filter").addEventListener("input",()=>{ renderList(); renderAC(); });
-$("#filter").addEventListener("focus",renderAC);
-$("#filter").addEventListener("blur",()=>{ setTimeout(hideAC,180); });
-$("#filter").addEventListener("keydown",(e)=>{
-  const box=$("#ac"); if(!box.classList.contains("show"))return;
-  if(e.key==="ArrowDown"){ e.preventDefault(); acActive=Math.min(acActive+1,acMatches.length-1); highlightAC(); }
-  else if(e.key==="ArrowUp"){ e.preventDefault(); acActive=Math.max(acActive-1,0); highlightAC(); }
-  else if(e.key==="Enter"){ e.preventDefault(); if(acMatches.length)pickAC(acActive>=0?acActive:0); }
-  else if(e.key==="Escape"){ hideAC(); }
-});
-$("#ac").addEventListener("mousedown",(e)=>{ const el=e.target.closest(".aci"); if(!el)return; e.preventDefault(); pickAC(parseInt(el.getAttribute("data-i"),10)); });
+function hideAC(){ const b=$("#ac"); if(b){ b.className="ac"; b.innerHTML=""; } }
+$("#filter").addEventListener("input",renderList);
 $("#selAll").addEventListener("click",()=>{
   const q=norm($("#filter").value);
   INV.forEach(it=>{if(!q||norm(it.code+" "+it.name+" "+it.distrito).includes(q))SELECTED.add(it.code);});
