@@ -231,7 +231,7 @@
 
   <header class="app">
     <div class="title">
-      <h1>Ruta de inspección de estructuras <span class="ver">v5.1</span></h1>
+      <h1>Ruta de inspección de estructuras <span class="ver">v5.2</span></h1>
       <div class="sub">Selecciona las estructuras a visitar, calcula el orden óptimo y abre la ruta en Google Maps.</div>
       <div class="src" id="srcInfo">Inventario: <b>—</b></div>
     </div>
@@ -400,7 +400,7 @@
     </div>
   </details>
 
-  <footer>Herramienta local · v5.1 · buscadores robustos (teclado Android) · PWA</footer>
+  <footer>Herramienta local · v5.2 · buscador por código (prioridad) · PWA</footer>
 </div>
 
 <div class="mobilebar" id="mobilebar">
@@ -410,7 +410,7 @@
 
 <script>
 /* =========================================================================
-   Ruta de inspección de estructuras — aplicación autónoma (v5.1, buscadores multi-evento + delegacion + distintivo de version)
+   Ruta de inspección de estructuras — aplicación autónoma (v5.2, buscador prioriza codigo, nombre aparte, sin distrito)
    Solver y datos 100% locales. Tiempos por carretera vía OSRM público
    (con respaldo a línea recta). Mapa Leaflet/OSM con respaldo SVG.
    ========================================================================= */
@@ -1010,12 +1010,27 @@ function renderList(){
   const raw=$("#filter").value.trim(), q=norm(raw);
   const box=$("#list");box.innerHTML="";
   if(q){
-    const matches=INV.filter(function(it){return norm(it.code+" "+it.name+" "+it.distrito).includes(q);});
-    const hd=document.createElement("div"); hd.className="gh";
-    hd.textContent=matches.length?("Resultados ("+matches.length+") · toca para añadir"):"Sin coincidencias";
-    box.appendChild(hd);
-    matches.slice(0,60).forEach(function(it){box.appendChild(mkRow(it));});
-    if(matches.length>60){ const m=document.createElement("div"); m.className="meta"; m.style.padding="8px 11px"; m.textContent="Afina la búsqueda para ver más."; box.appendChild(m); }
+    const codeM=[], nameM=[];
+    INV.forEach(function(it){
+      if(norm(it.code).includes(q)) codeM.push(it);
+      else if(norm(it.name).includes(q)) nameM.push(it);
+    });
+    codeM.sort(function(a,b){
+      const sa=norm(a.code).startsWith(q)?0:1, sb=norm(b.code).startsWith(q)?0:1;
+      if(sa!==sb)return sa-sb;
+      return a.code.localeCompare(b.code,'es');
+    });
+    if(!codeM.length && !nameM.length){ box.innerHTML='<div class="gh">Sin coincidencias</div>'; return; }
+    if(codeM.length){
+      const h1=document.createElement("div"); h1.className="gh"; h1.textContent="Código ("+codeM.length+") · toca «Añadir»";
+      box.appendChild(h1);
+      codeM.slice(0,80).forEach(function(it){box.appendChild(mkRow(it));});
+    }
+    if(nameM.length){
+      const h2=document.createElement("div"); h2.className="gh"; h2.textContent="Por nombre ("+nameM.length+")";
+      box.appendChild(h2);
+      nameM.slice(0,40).forEach(function(it){box.appendChild(mkRow(it));});
+    }
     return;
   }
   const groups={};
@@ -1301,13 +1316,25 @@ function renderAddList(){
   const q=norm($("#addSearch").value), box=$("#addList");
   box.innerHTML="";
   if(!q){ box.innerHTML='<div class="di" style="padding:11px">Escribe código o nombre para buscar…</div>'; return; }
-  const matches=INV.filter(function(it){return !SELECTED.has(it.code) && norm(it.code+" "+it.name+" "+it.distrito).includes(q);}).slice(0,40);
-  if(!matches.length){ box.innerHTML='<div class="di" style="padding:11px">Sin coincidencias nuevas.</div>'; return; }
-  matches.forEach(function(it){
+  const codeM=[], nameM=[];
+  INV.forEach(function(it){
+    if(SELECTED.has(it.code))return;
+    if(norm(it.code).includes(q)) codeM.push(it);
+    else if(norm(it.name).includes(q)) nameM.push(it);
+  });
+  codeM.sort(function(a,b){
+    const sa=norm(a.code).startsWith(q)?0:1, sb=norm(b.code).startsWith(q)?0:1;
+    if(sa!==sb)return sa-sb;
+    return a.code.localeCompare(b.code,'es');
+  });
+  function addRow(it){
     const row=document.createElement("div"); row.className="addrow"; row.setAttribute("data-code",it.code);
     row.innerHTML='<span class="cod">'+escapeHtml(it.code)+'</span><span><span class="nm">'+escapeHtml(it.name)+'</span><br><span class="di">'+escapeHtml(it.distrito)+'</span></span><span class="add">＋ Añadir</span>';
     box.appendChild(row);
-  });
+  }
+  if(!codeM.length && !nameM.length){ box.innerHTML='<div class="di" style="padding:11px">Sin coincidencias nuevas.</div>'; return; }
+  if(codeM.length){ const h=document.createElement("div"); h.className="gh"; h.textContent="Código ("+codeM.length+")"; box.appendChild(h); codeM.slice(0,60).forEach(addRow); }
+  if(nameM.length){ const h=document.createElement("div"); h.className="gh"; h.textContent="Por nombre ("+nameM.length+")"; box.appendChild(h); nameM.slice(0,30).forEach(addRow); }
 }
 function addToRoute(code){
   if(SELECTED.has(code))return;
