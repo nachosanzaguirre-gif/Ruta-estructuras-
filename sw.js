@@ -4,7 +4,7 @@
    - Resto de recursos del mismo origen (iconos, manifiesto): "caché primero".
    - Recursos externos (teselas del mapa, OSRM, Google Maps, CDN): directos a la red;
      sin conexión, la propia app degrada con elegancia (esquema + línea recta). */
-const CACHE = "ruta-inspeccion-v4_3";
+const CACHE = "ruta-inspeccion-v5_2";
 const CORE = [
   "./",
   "./index.html",
