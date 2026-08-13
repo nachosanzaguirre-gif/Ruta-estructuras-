@@ -71,6 +71,7 @@
   .row .add{justify-self:end;font-family:var(--ui);font-size:11px;font-weight:600;padding:4px 9px;border-radius:20px;border:1px solid var(--accent);color:var(--accent);white-space:nowrap}
   .row .add.on{border-color:var(--ok);color:var(--ok);background:#f0f8f3}
   #addBtn{border-color:var(--accent);color:var(--accent)}
+  .ver{font-family:var(--mono);font-size:11px;font-weight:600;color:#fff;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.5);border-radius:20px;padding:1px 8px;vertical-align:middle;margin-left:6px;white-space:nowrap}
   .addpanel{border:1px solid var(--line-strong);border-radius:var(--r-sm);margin:6px 0 12px;overflow:hidden}
   .addpanel #addSearch{width:100%;border:0;border-bottom:1px solid var(--line);border-radius:0;font-size:16px;padding:11px 12px}
   .addlist{max-height:240px;overflow:auto}
@@ -230,7 +231,7 @@
 
   <header class="app">
     <div class="title">
-      <h1>Ruta de inspección de estructuras</h1>
+      <h1>Ruta de inspección de estructuras <span class="ver">v5.1</span></h1>
       <div class="sub">Selecciona las estructuras a visitar, calcula el orden óptimo y abre la ruta en Google Maps.</div>
       <div class="src" id="srcInfo">Inventario: <b>—</b></div>
     </div>
@@ -250,7 +251,7 @@
       <div class="hd"><h2>Estructuras</h2><span class="count" id="invCount">—</span></div>
       <div class="bd">
         <div class="acwrap">
-          <input type="text" class="filter" id="filter" placeholder="Buscar por código o nombre y tocar para añadir…" autocomplete="off">
+          <input type="search" class="filter" id="filter" placeholder="Buscar por código o nombre y tocar para añadir…" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
           <div class="ac" id="ac"></div>
         </div>
         <div class="selbar">
@@ -322,7 +323,7 @@
           <div class="attrib" id="attrib"></div>
           <div class="rowbtns"><button id="recalc">Recalcular</button><button id="addBtn">+ Añadir estructura</button><button id="bigMap">Ver mapa grande</button></div>
           <div id="addPanel" class="addpanel hidden">
-            <input type="text" id="addSearch" placeholder="Buscar estructura para añadir…" autocomplete="off">
+            <input type="search" id="addSearch" placeholder="Buscar estructura para añadir…" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
             <div id="addList" class="addlist"></div>
           </div>
           <ol class="itin" id="itin"></ol>
@@ -399,7 +400,7 @@
     </div>
   </details>
 
-  <footer>Herramienta local · v4.9 · añadir estructura desde el resultado · buscar en lista · PWA</footer>
+  <footer>Herramienta local · v5.1 · buscadores robustos (teclado Android) · PWA</footer>
 </div>
 
 <div class="mobilebar" id="mobilebar">
@@ -409,7 +410,7 @@
 
 <script>
 /* =========================================================================
-   Ruta de inspección de estructuras — aplicación autónoma (v4.9, anadir estructura desde el resultado + buscar en lista + PWA)
+   Ruta de inspección de estructuras — aplicación autónoma (v5.1, buscadores multi-evento + delegacion + distintivo de version)
    Solver y datos 100% locales. Tiempos por carretera vía OSRM público
    (con respaldo a línea recta). Mapa Leaflet/OSM con respaldo SVG.
    ========================================================================= */
@@ -995,25 +996,19 @@ function loadInventory(result,label){
   else hideMsg($("#selMsg"));
   return true;
 }
+function mkRow(it){
+  const on=SELECTED.has(it.code);
+  const row=document.createElement("label");row.className="row"+(on?" on":"");
+  row.setAttribute("data-code",it.code);
+  row.innerHTML='<input type="checkbox" '+(on?"checked":"")+'>'
+    +'<span class="cod">'+escapeHtml(it.code)+'</span>'
+    +'<span><span class="nm">'+escapeHtml(it.name)+'</span><br><span class="meta">'+escapeHtml(it.distrito)+'</span></span>'
+    +'<span class="add'+(on?' on':'')+'">'+(on?'✓ En ruta':'Añadir')+'</span>';
+  return row;
+}
 function renderList(){
   const raw=$("#filter").value.trim(), q=norm(raw);
   const box=$("#list");box.innerHTML="";
-  function mkRow(it){
-    const on=SELECTED.has(it.code);
-    const row=document.createElement("label");row.className="row"+(on?" on":"");
-    row.innerHTML='<input type="checkbox" '+(on?"checked":"")+'>'
-      +'<span class="cod">'+escapeHtml(it.code)+'</span>'
-      +'<span><span class="nm">'+escapeHtml(it.name)+'</span><br><span class="meta">'+escapeHtml(it.distrito)+'</span></span>'
-      +'<span class="add'+(on?' on':'')+'">'+(on?'✓ En ruta':'Añadir')+'</span>';
-    row.querySelector("input").addEventListener("change",function(e){
-      const c=e.target.checked;
-      if(c)SELECTED.add(it.code); else SELECTED.delete(it.code);
-      row.classList.toggle("on",c);
-      const a=row.querySelector(".add"); if(a){ a.className="add"+(c?" on":""); a.textContent=c?"✓ En ruta":"Añadir"; }
-      renderStartOptions(); updateSelCount();
-    });
-    return row;
-  }
   if(q){
     const matches=INV.filter(function(it){return norm(it.code+" "+it.name+" "+it.distrito).includes(q);});
     const hd=document.createElement("div"); hd.className="gh";
@@ -1309,9 +1304,8 @@ function renderAddList(){
   const matches=INV.filter(function(it){return !SELECTED.has(it.code) && norm(it.code+" "+it.name+" "+it.distrito).includes(q);}).slice(0,40);
   if(!matches.length){ box.innerHTML='<div class="di" style="padding:11px">Sin coincidencias nuevas.</div>'; return; }
   matches.forEach(function(it){
-    const row=document.createElement("div"); row.className="addrow";
+    const row=document.createElement("div"); row.className="addrow"; row.setAttribute("data-code",it.code);
     row.innerHTML='<span class="cod">'+escapeHtml(it.code)+'</span><span><span class="nm">'+escapeHtml(it.name)+'</span><br><span class="di">'+escapeHtml(it.distrito)+'</span></span><span class="add">＋ Añadir</span>';
-    row.addEventListener("click",function(){ addToRoute(it.code); });
     box.appendChild(row);
   });
 }
@@ -1326,7 +1320,13 @@ $("#addBtn").addEventListener("click",function(){
   const p=$("#addPanel"); p.classList.toggle("hidden");
   if(!p.classList.contains("hidden")){ renderAddList(); $("#addSearch").focus(); }
 });
-$("#addSearch").addEventListener("input",renderAddList);
+let _addT=null;
+function _runAdd(){ clearTimeout(_addT); _addT=setTimeout(renderAddList,90); }
+["input","compositionend","search","keyup"].forEach(function(ev){ $("#addSearch").addEventListener(ev,_runAdd); });
+$("#addList").addEventListener("click",function(e){
+  const row=e.target.closest(".addrow"); if(!row)return;
+  const code=row.getAttribute("data-code"); if(code)addToRoute(code);
+});
 
 function mapsStopUrl(p){return "https://www.google.com/maps/dir/?api=1&travelmode=driving&destination="+encodeURIComponent(p.lat+","+p.lon);}
 function computeMapsUrl(orderedNodes, liveOrigin){
@@ -1467,7 +1467,19 @@ function drawSchematic(ordered,closed){
 
 /* ------------------------------ Carga ficheros --------------------------- */
 function hideAC(){ const b=$("#ac"); if(b){ b.className="ac"; b.innerHTML=""; } }
-$("#filter").addEventListener("input",renderList);
+let _filterT=null;
+function _runFilter(){ clearTimeout(_filterT); _filterT=setTimeout(renderList,90); }
+["input","compositionend","search","keyup"].forEach(function(ev){ $("#filter").addEventListener(ev,_runFilter); });
+$("#list").addEventListener("change",function(e){
+  const cb=e.target; if(!cb||cb.type!=="checkbox")return;
+  const row=cb.closest(".row"); if(!row)return;
+  const code=row.getAttribute("data-code"); if(!code)return;
+  const on=cb.checked;
+  if(on)SELECTED.add(code); else SELECTED.delete(code);
+  row.classList.toggle("on",on);
+  const a=row.querySelector(".add"); if(a){ a.className="add"+(on?" on":""); a.textContent=on?"✓ En ruta":"Añadir"; }
+  renderStartOptions(); updateSelCount();
+});
 $("#selAll").addEventListener("click",()=>{
   const q=norm($("#filter").value);
   INV.forEach(it=>{if(!q||norm(it.code+" "+it.name+" "+it.distrito).includes(q))SELECTED.add(it.code);});
